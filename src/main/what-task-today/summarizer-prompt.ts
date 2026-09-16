@@ -7,12 +7,14 @@ import type { JiraIssue } from '../../shared/jira-types'
 const SUMMARY_HEADER = '## Summary'
 const PLAN_HEADER = '## Implementation Plan'
 
-export function buildSummarizePrompt(issue: JiraIssue): string {
+export function buildSummarizePrompt(issue: JiraIssue, prePrompt?: string | null): string {
   const description = issue.description?.trim() || '(no description provided)'
+  const trimmedPrePrompt = prePrompt?.trim()
   return [
     'You are triaging a Jira card for an engineer who will pick it up tomorrow.',
     'Use the available MCP tools to inspect the relevant codebase(s) before answering.',
     '',
+    ...(trimmedPrePrompt ? [trimmedPrePrompt, ''] : []),
     `Card: ${issue.key} — ${issue.title}`,
     `Status: ${issue.status?.name ?? 'unknown'}`,
     `URL: ${issue.url}`,
@@ -23,13 +25,15 @@ export function buildSummarizePrompt(issue: JiraIssue): string {
     'Respond in GitHub-flavored markdown with EXACTLY these two sections and nothing else:',
     '',
     `${SUMMARY_HEADER}`,
-    'A short, scannable brief: what the card asks for, which area/module it impacts,',
+    'A short, scannable brief: what the card asks for, which repo(s)/area/module it impacts,',
     'and a rough plan as 3-6 bullets. Optimize for a human reading it in the morning.',
     '',
     `${PLAN_HEADER}`,
     'A detailed implementation plan for an AI agent to execute: concrete requirements,',
-    'the specific files/modules involved (from your MCP inspection), and ordered steps.',
-    'This block is injected verbatim as the agent’s starting context, so be precise.'
+    'the repo(s) the work touches (name each one, from your MCP inspection — call out',
+    'clearly if it spans more than one repo), the specific files/modules involved, and',
+    'ordered steps. This block is injected verbatim as the agent’s starting context, so',
+    'be precise.'
   ].join('\n')
 }
 

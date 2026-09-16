@@ -15,11 +15,11 @@ import {
 import { getIssue } from '../jira/issues'
 import { listIssues } from '../jira/jira-issue-search'
 import { spawnSourceControlAgent } from '../text-generation/source-control-agent-launch'
-import {
-  MAX_SOURCE_CONTROL_AGENT_OUTPUT_BYTES,
-  SOURCE_CONTROL_GENERATION_TIMEOUT_MS
-} from '../text-generation/source-control-generation-limits'
 import { readWhatTaskTodayMcpConfig } from './mcp-config-store'
+import {
+  MAX_WHAT_TASK_TODAY_OUTPUT_BYTES,
+  WHAT_TASK_TODAY_GENERATION_TIMEOUT_MS
+} from './summarize-generation-limits'
 import { readWhatTaskTodaySettings } from './settings-store'
 import {
   pruneWhatTaskTodayCards,
@@ -48,7 +48,7 @@ export async function scanWhatTaskToday(): Promise<WhatTaskTodayScanResult> {
     errors: []
   }
   const mcpConfig = readWhatTaskTodayMcpConfig()
-  const { model } = settings
+  const { model, prePrompt } = settings
 
   for (const issue of issues) {
     if (!shouldReSummarizeCard(issue.key, issue.updatedAt)) {
@@ -57,7 +57,7 @@ export async function scanWhatTaskToday(): Promise<WhatTaskTodayScanResult> {
     }
     try {
       console.log(`[what-task-today] summarizing ${issue.key}… (model: ${model ?? 'default'})`)
-      await summarizeIssueIntoCard(issue, mcpConfig, model)
+      await summarizeIssueIntoCard(issue, mcpConfig, model, prePrompt)
       result.summarized += 1
     } catch (error) {
       result.errors.push(`${issue.key}: ${error instanceof Error ? error.message : String(error)}`)
@@ -83,9 +83,9 @@ export async function replanWhatTaskTodayCard(
       return { ok: false, error: `Could not find Jira issue ${issueKey}.` }
     }
     const mcpConfig = readWhatTaskTodayMcpConfig()
-    const { model } = readWhatTaskTodaySettings()
+    const { model, prePrompt } = readWhatTaskTodaySettings()
     console.log(`[what-task-today] re-planning ${issueKey}… (model: ${model ?? 'default'})`)
-    const card = await summarizeIssueIntoCard(issue, mcpConfig, model)
+    const card = await summarizeIssueIntoCard(issue, mcpConfig, model, prePrompt)
     return { ok: true, card }
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) }
@@ -95,9 +95,10 @@ export async function replanWhatTaskTodayCard(
 async function summarizeIssueIntoCard(
   issue: JiraIssue,
   mcpConfig: string | null,
-  model: string | null
+  model: string | null,
+  prePrompt: string | null
 ): Promise<WhatTaskTodayCard> {
-  const output = await runClaudeSummarize(buildSummarizePrompt(issue), mcpConfig, model)
+  const output = await runClaudeSummarize(buildSummarizePrompt(issue, prePrompt), mcpConfig, model)
   const { humanSummary, agentContext } = parseSummary(output)
   const card: WhatTaskTodayCard = {
     issueKey: issue.key,
@@ -169,10 +170,10 @@ function runClaudePrint(prompt: string, args: string[]): Promise<string> {
     const timer = setTimeout(() => {
       child.kill('SIGKILL')
       finish(() => reject(new Error('Summarizer timed out.')))
-    }, SOURCE_CONTROL_GENERATION_TIMEOUT_MS)
+    }, WHAT_TASK_TODAY_GENERATION_TIMEOUT_MS)
     child.stdout?.on('data', (chunk: Buffer) => {
       bytes += chunk.byteLength
-      if (bytes > MAX_SOURCE_CONTROL_AGENT_OUTPUT_BYTES) {
+      if (bytes > MAX_WHAT_TASK_TODAY_OUTPUT_BYTES) {
         child.kill('SIGKILL')
         finish(() => reject(new Error('Summarizer produced too much output.')))
         return

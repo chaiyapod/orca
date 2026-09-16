@@ -22,6 +22,21 @@ export const getWhatTaskTodaySettingsSearchEntries = createLocalizedCatalog(() =
     ]
   },
   {
+    title: translate('auto.components.settings.whatTaskToday.prePromptTitle', 'Extra instructions'),
+    description: translate(
+      'auto.components.settings.whatTaskToday.prePromptDescription',
+      'Prepended to every summarize prompt, before the per-card instructions — e.g. house conventions or which repos to prefer.'
+    ),
+    keywords: [
+      ...translateSearchKeyword('auto.components.settings.whatTaskToday.keywordPrompt', 'prompt'),
+      ...translateSearchKeyword(
+        'auto.components.settings.whatTaskToday.keywordInstructions',
+        'instructions'
+      ),
+      ...translateSearchKeyword('auto.components.settings.whatTaskToday.keywordRepo', 'repo')
+    ]
+  },
+  {
     title: translate(
       'auto.components.settings.whatTaskToday.mcpConfigTitle',
       'Codebase MCP config'

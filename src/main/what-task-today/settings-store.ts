@@ -38,7 +38,15 @@ export function readWhatTaskTodaySettings(): WhatTaskTodaySettings {
       parsed && typeof parsed === 'object' && 'statusCategories' in parsed
         ? normalizeStatusCategories(parsed.statusCategories)
         : null
-    return { model, statusCategories }
+    const prePrompt =
+      parsed &&
+      typeof parsed === 'object' &&
+      'prePrompt' in parsed &&
+      typeof parsed.prePrompt === 'string' &&
+      parsed.prePrompt.trim()
+        ? parsed.prePrompt
+        : null
+    return { model, statusCategories, prePrompt }
   } catch {
     return emptyWhatTaskTodaySettings()
   }
@@ -51,7 +59,9 @@ export function saveWhatTaskTodaySettings(settings: WhatTaskTodaySettings): void
   }
   const model = typeof settings.model === 'string' && settings.model.trim() ? settings.model : null
   const statusCategories = normalizeStatusCategories(settings.statusCategories)
-  writeFileSync(settingsPath(), JSON.stringify({ model, statusCategories }, null, 2), {
+  const prePrompt =
+    typeof settings.prePrompt === 'string' && settings.prePrompt.trim() ? settings.prePrompt : null
+  writeFileSync(settingsPath(), JSON.stringify({ model, statusCategories, prePrompt }, null, 2), {
     encoding: 'utf-8',
     mode: 0o600
   })

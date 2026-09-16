@@ -74,16 +74,19 @@ export const DEFAULT_WHAT_TASK_TODAY_STATUS_CATEGORIES: WhatTaskTodayStatusCateg
 // which Jira status categories a scan pulls in.
 // model: null = the CLI's default model (no flag).
 // statusCategories: null = default (To Do + In Progress).
+// prePrompt: null = no extra instructions; else prepended to every summarize prompt
+// (e.g. house conventions, which repos to prefer) ahead of the per-card instructions.
 export type WhatTaskTodaySettings = {
   model: string | null
   statusCategories: WhatTaskTodayStatusCategory[] | null
+  prePrompt: string | null
 }
 
 // Aliases the `claude` CLI accepts for --model. Kept minimal for MVP.
 export const WHAT_TASK_TODAY_MODEL_OPTIONS = ['opus', 'sonnet', 'haiku'] as const
 
 export function emptyWhatTaskTodaySettings(): WhatTaskTodaySettings {
-  return { model: null, statusCategories: null }
+  return { model: null, statusCategories: null, prePrompt: null }
 }
 
 export function resolveWhatTaskTodayStatusCategories(

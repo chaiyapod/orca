@@ -11,6 +11,7 @@ export function WhatTaskTodaySettingsPane(): React.JSX.Element {
   return (
     <div className="divide-y divide-border">
       <ScanConditionsSection />
+      <PrePromptSection />
       <McpConfigSection />
       <ErrorLogSection />
       <ClearDataSection />
@@ -61,6 +62,54 @@ function ScanConditionsSection(): React.JSX.Element {
           )}
         </p>
         <StatusCategoryFilter />
+      </div>
+    </section>
+  )
+}
+
+function PrePromptSection(): React.JSX.Element {
+  const [value, setValue] = React.useState('')
+  const [status, setStatus] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    void window.api.whatTaskToday.getSettings().then((settings) => {
+      setValue(settings.prePrompt ?? '')
+    })
+  }, [])
+
+  const handleSave = React.useCallback(async () => {
+    await window.api.whatTaskToday.setSettings({ prePrompt: value.trim() ? value : null })
+    setStatus(translate('auto.components.settings.whatTaskToday.prePromptSaved', 'Saved.'))
+  }, [value])
+
+  return (
+    <section className="space-y-3 py-5">
+      <div className="space-y-1">
+        <h3 className="text-sm font-medium">
+          {translate('auto.components.settings.whatTaskToday.prePromptTitle', 'Extra instructions')}
+        </h3>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {translate(
+            'auto.components.settings.whatTaskToday.prePromptDescription',
+            'Prepended to every summarize prompt, before the per-card instructions — e.g. house conventions or which repos to prefer.'
+          )}
+        </p>
+      </div>
+      <Textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        rows={5}
+        spellCheck={false}
+        placeholder={translate(
+          'auto.components.settings.whatTaskToday.prePromptPlaceholder',
+          'e.g. Prefer the orca-backend repo for API changes; flag anything touching auth for manual review.'
+        )}
+      />
+      <div className="flex items-center gap-3">
+        <Button size="sm" onClick={() => void handleSave()}>
+          {translate('auto.components.settings.whatTaskToday.prePromptSave', 'Save')}
+        </Button>
+        {status ? <span className="text-xs text-muted-foreground">{status}</span> : null}
       </div>
     </section>
   )

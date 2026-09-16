@@ -92,7 +92,8 @@ export function registerWhatTaskTodayHandlers(): void {
       saveWhatTaskTodaySettings({
         model: 'model' in args ? (args.model ?? null) : current.model,
         statusCategories:
-          'statusCategories' in args ? (args.statusCategories ?? null) : current.statusCategories
+          'statusCategories' in args ? (args.statusCategories ?? null) : current.statusCategories,
+        prePrompt: 'prePrompt' in args ? (args.prePrompt ?? null) : current.prePrompt
       })
     }
   )
