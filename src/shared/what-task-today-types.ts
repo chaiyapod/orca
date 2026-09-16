@@ -51,17 +51,47 @@ export type WhatTaskTodayReplanResponse =
   | { ok: true; card: WhatTaskTodayCard }
   | { ok: false; error: string }
 
-// Which Claude model the summarizer runs (`claude -p --model <model>`).
-// null = the CLI's default model (no flag).
+// Jira's built-in status categories (`status.categoryKey`).
+export type WhatTaskTodayStatusCategory = 'new' | 'indeterminate' | 'done'
+
+export const WHAT_TASK_TODAY_STATUS_CATEGORIES: {
+  key: WhatTaskTodayStatusCategory
+  label: string
+}[] = [
+  { key: 'new', label: 'To Do' },
+  { key: 'indeterminate', label: 'In Progress' },
+  { key: 'done', label: 'Done' }
+]
+
+// A scan without resolution=Unresolved cards already excludes most Done
+// cards at the Jira query level, so this is what the user actually controls.
+export const DEFAULT_WHAT_TASK_TODAY_STATUS_CATEGORIES: WhatTaskTodayStatusCategory[] = [
+  'new',
+  'indeterminate'
+]
+
+// Which Claude model the summarizer runs (`claude -p --model <model>`), and
+// which Jira status categories a scan pulls in.
+// model: null = the CLI's default model (no flag).
+// statusCategories: null = default (To Do + In Progress).
 export type WhatTaskTodaySettings = {
   model: string | null
+  statusCategories: WhatTaskTodayStatusCategory[] | null
 }
 
 // Aliases the `claude` CLI accepts for --model. Kept minimal for MVP.
 export const WHAT_TASK_TODAY_MODEL_OPTIONS = ['opus', 'sonnet', 'haiku'] as const
 
 export function emptyWhatTaskTodaySettings(): WhatTaskTodaySettings {
-  return { model: null }
+  return { model: null, statusCategories: null }
+}
+
+export function resolveWhatTaskTodayStatusCategories(
+  settings: WhatTaskTodaySettings
+): WhatTaskTodayStatusCategory[] {
+  return settings.statusCategories && settings.statusCategories.length > 0
+    ? settings.statusCategories
+    : DEFAULT_WHAT_TASK_TODAY_STATUS_CATEGORIES
 }
 
 // A recorded scan/re-plan failure, shown as a rolling error log in Settings.

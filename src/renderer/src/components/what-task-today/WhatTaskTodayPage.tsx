@@ -214,8 +214,8 @@ export default function WhatTaskTodayPage(): React.JSX.Element {
           </div>
         </TabsContent>
 
-        <TabsContent value="ignored">
-          <div className="scrollbar-sleek overflow-y-auto px-3 md:px-5">
+        <TabsContent value="ignored" className="flex min-h-0 flex-col">
+          <div className="min-h-0 flex-1 px-3 py-3 md:px-5">
             <IgnoredCardsSection />
           </div>
         </TabsContent>

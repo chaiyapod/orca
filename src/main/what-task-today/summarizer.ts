@@ -6,10 +6,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { JiraIssue } from '../../shared/jira-types'
-import type {
-  WhatTaskTodayCard,
-  WhatTaskTodayReplanResponse,
-  WhatTaskTodayScanResult
+import {
+  resolveWhatTaskTodayStatusCategories,
+  type WhatTaskTodayCard,
+  type WhatTaskTodayReplanResponse,
+  type WhatTaskTodayScanResult
 } from '../../shared/what-task-today-types'
 import { getIssue } from '../jira/issues'
 import { listIssues } from '../jira/jira-issue-search'
@@ -27,16 +28,18 @@ import {
 } from './summary-store'
 import { buildSummarizePrompt, parseSummary } from './summarizer-prompt'
 
-// Actionable cards = anything not resolved/done. JQL already filters
-// resolution=Unresolved; this drops any 'done'-category stragglers but keeps
-// both To Do and In Progress so a scan is not silently empty.
-function isActionableCard(issue: JiraIssue): boolean {
-  return issue.status?.categoryKey !== 'done'
+// JQL already filters resolution=Unresolved, which excludes most Done cards
+// on its own; this is the actual per-scan status-category gate the user
+// configures in Settings (default: To Do + In Progress).
+function isActionableCard(issue: JiraIssue, allowedCategories: readonly string[]): boolean {
+  return allowedCategories.includes(issue.status?.categoryKey ?? '')
 }
 
 export async function scanWhatTaskToday(): Promise<WhatTaskTodayScanResult> {
+  const settings = readWhatTaskTodaySettings()
+  const allowedCategories = resolveWhatTaskTodayStatusCategories(settings)
   const assigned = await listIssues('assigned', 50)
-  const issues = assigned.filter(isActionableCard)
+  const issues = assigned.filter((issue) => isActionableCard(issue, allowedCategories))
   console.log(`[what-task-today] scan: ${assigned.length} assigned, ${issues.length} actionable`)
   const result: WhatTaskTodayScanResult = {
     scanned: issues.length,
@@ -45,7 +48,7 @@ export async function scanWhatTaskToday(): Promise<WhatTaskTodayScanResult> {
     errors: []
   }
   const mcpConfig = readWhatTaskTodayMcpConfig()
-  const { model } = readWhatTaskTodaySettings()
+  const { model } = settings
 
   for (const issue of issues) {
     if (!shouldReSummarizeCard(issue.key, issue.updatedAt)) {

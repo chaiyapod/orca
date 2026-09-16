@@ -5,6 +5,24 @@ import { translateSearchKeyword } from './settings-search-keywords'
 export const getWhatTaskTodaySettingsSearchEntries = createLocalizedCatalog(() => [
   {
     title: translate(
+      'auto.components.settings.whatTaskToday.scanConditionsTitle',
+      'What a scan pulls'
+    ),
+    description: translate(
+      'auto.components.settings.whatTaskToday.scanConditionUnresolved',
+      'Not resolved (resolution = Unresolved) and not in a Done-category status'
+    ),
+    keywords: [
+      ...translateSearchKeyword('auto.components.settings.whatTaskToday.keywordScan', 'scan'),
+      ...translateSearchKeyword(
+        'auto.components.settings.whatTaskToday.keywordCondition',
+        'condition'
+      ),
+      ...translateSearchKeyword('auto.components.settings.whatTaskToday.keywordStatus', 'status')
+    ]
+  },
+  {
+    title: translate(
       'auto.components.settings.whatTaskToday.mcpConfigTitle',
       'Codebase MCP config'
     ),

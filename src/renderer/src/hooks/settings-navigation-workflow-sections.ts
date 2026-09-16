@@ -118,7 +118,7 @@ export function buildWorkflowSettingsSections(
       ),
       description: translate(
         'auto.hooks.useSettingsNavigationMetadata.whatTaskTodayDescription',
-        'Codebase MCP config, ignored cards, and the sync error log.'
+        'Scan conditions, codebase MCP config, and the sync error log.'
       ),
       icon: ClipboardList,
       searchEntries: getWhatTaskTodaySettingsSearchEntries(),

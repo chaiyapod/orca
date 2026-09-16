@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import type { WhatTaskTodaySettings } from '../../shared/what-task-today-types'
 import {
   readWhatTaskTodayMcpConfig,
   saveWhatTaskTodayMcpConfig
@@ -84,9 +85,17 @@ export function registerWhatTaskTodayHandlers(): void {
 
   ipcMain.handle('whatTaskToday:getSettings', async () => readWhatTaskTodaySettings())
 
-  ipcMain.handle('whatTaskToday:setSettings', async (_event, args: { model: string | null }) => {
-    saveWhatTaskTodaySettings({ model: typeof args?.model === 'string' ? args.model : null })
-  })
+  ipcMain.handle(
+    'whatTaskToday:setSettings',
+    async (_event, args: Partial<WhatTaskTodaySettings>) => {
+      const current = readWhatTaskTodaySettings()
+      saveWhatTaskTodaySettings({
+        model: 'model' in args ? (args.model ?? null) : current.model,
+        statusCategories:
+          'statusCategories' in args ? (args.statusCategories ?? null) : current.statusCategories
+      })
+    }
+  )
 
   ipcMain.handle('whatTaskToday:getMcpConfig', async () => readWhatTaskTodayMcpConfig())
 

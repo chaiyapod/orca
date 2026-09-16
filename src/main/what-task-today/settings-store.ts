@@ -6,11 +6,21 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import {
   emptyWhatTaskTodaySettings,
-  type WhatTaskTodaySettings
+  WHAT_TASK_TODAY_STATUS_CATEGORIES,
+  type WhatTaskTodaySettings,
+  type WhatTaskTodayStatusCategory
 } from '../../shared/what-task-today-types'
 
 function settingsPath(): string {
   return join(homedir(), '.orca', 'what-task-today-settings.json')
+}
+
+function isStatusCategory(value: unknown): value is WhatTaskTodayStatusCategory {
+  return WHAT_TASK_TODAY_STATUS_CATEGORIES.some((category) => category.key === value)
+}
+
+function normalizeStatusCategories(value: unknown): WhatTaskTodayStatusCategory[] | null {
+  return Array.isArray(value) && value.every(isStatusCategory) && value.length > 0 ? value : null
 }
 
 export function readWhatTaskTodaySettings(): WhatTaskTodaySettings {
@@ -24,7 +34,11 @@ export function readWhatTaskTodaySettings(): WhatTaskTodaySettings {
       parsed && typeof parsed === 'object' && 'model' in parsed && typeof parsed.model === 'string'
         ? parsed.model
         : null
-    return { model }
+    const statusCategories =
+      parsed && typeof parsed === 'object' && 'statusCategories' in parsed
+        ? normalizeStatusCategories(parsed.statusCategories)
+        : null
+    return { model, statusCategories }
   } catch {
     return emptyWhatTaskTodaySettings()
   }
@@ -36,7 +50,8 @@ export function saveWhatTaskTodaySettings(settings: WhatTaskTodaySettings): void
     mkdirSync(dir, { recursive: true })
   }
   const model = typeof settings.model === 'string' && settings.model.trim() ? settings.model : null
-  writeFileSync(settingsPath(), JSON.stringify({ model }, null, 2), {
+  const statusCategories = normalizeStatusCategories(settings.statusCategories)
+  writeFileSync(settingsPath(), JSON.stringify({ model, statusCategories }, null, 2), {
     encoding: 'utf-8',
     mode: 0o600
   })

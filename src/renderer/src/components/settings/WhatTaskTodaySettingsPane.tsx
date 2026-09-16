@@ -5,14 +5,64 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
 import { translate } from '@/i18n/i18n'
+import { StatusCategoryFilter } from './what-task-today-status-filter'
 
 export function WhatTaskTodaySettingsPane(): React.JSX.Element {
   return (
     <div className="divide-y divide-border">
+      <ScanConditionsSection />
       <McpConfigSection />
       <ErrorLogSection />
       <ClearDataSection />
     </div>
+  )
+}
+
+function ScanConditionsSection(): React.JSX.Element {
+  return (
+    <section className="space-y-3 py-5 first:pt-0">
+      <h3 className="text-sm font-medium">
+        {translate(
+          'auto.components.settings.whatTaskToday.scanConditionsTitle',
+          'What a scan pulls'
+        )}
+      </h3>
+      <ul className="list-inside list-disc space-y-1 text-xs leading-relaxed text-muted-foreground">
+        <li>
+          {translate(
+            'auto.components.settings.whatTaskToday.scanConditionAssigned',
+            'Assigned to you (assignee = currentUser())'
+          )}
+        </li>
+        <li>
+          {translate(
+            'auto.components.settings.whatTaskToday.scanConditionUnresolved',
+            'Not resolved (resolution = Unresolved)'
+          )}
+        </li>
+        <li>
+          {translate(
+            'auto.components.settings.whatTaskToday.scanConditionIgnored',
+            'Not on your Ignored list'
+          )}
+        </li>
+        <li>
+          {translate(
+            'auto.components.settings.whatTaskToday.scanConditionOrder',
+            'Newest updated first, capped at 50 cards per scan'
+          )}
+        </li>
+      </ul>
+      <div className="space-y-1">
+        <p className="text-xs font-medium text-foreground">
+          {translate(
+            'auto.components.settings.whatTaskToday.scanStatusFilterTitle',
+            'Include statuses'
+          )}
+        </p>
+        <StatusCategoryFilter />
+      </div>
+    </section>
   )
 }
 

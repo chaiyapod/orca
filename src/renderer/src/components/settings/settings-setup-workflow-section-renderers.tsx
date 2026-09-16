@@ -149,7 +149,7 @@ export function renderWhatTaskTodaySettingsSection(
       title={translate('auto.components.settings.whatTaskToday.title', 'What Task Today')}
       description={translate(
         'auto.components.settings.whatTaskToday.description',
-        'Codebase MCP config, ignored cards, and the sync error log.'
+        'Scan conditions, codebase MCP config, and the sync error log.'
       )}
       searchEntries={navigation.getSectionSearchEntries('what-task-today')}
     >

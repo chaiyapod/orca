@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron'
+import type { WhatTaskTodaySettings } from '../../shared/what-task-today-types'
 import type { PreloadApi } from '../api-types'
 
 export const whatTaskTodayApi = {
@@ -13,7 +14,7 @@ export const whatTaskTodayApi = {
   agentContext: (args: { issueKey: string }) =>
     ipcRenderer.invoke('whatTaskToday:agentContext', args),
   getSettings: () => ipcRenderer.invoke('whatTaskToday:getSettings'),
-  setSettings: (args: { model: string | null }): Promise<void> =>
+  setSettings: (args: Partial<WhatTaskTodaySettings>): Promise<void> =>
     ipcRenderer.invoke('whatTaskToday:setSettings', args),
   getMcpConfig: () => ipcRenderer.invoke('whatTaskToday:getMcpConfig'),
   setMcpConfig: (args: { content: string }) =>
