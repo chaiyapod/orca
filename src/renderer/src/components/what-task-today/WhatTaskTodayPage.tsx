@@ -4,9 +4,11 @@ import { buildJiraWorkspaceSource } from '../../../../shared/new-workspace/works
 import type { WhatTaskTodayCard } from '../../../../shared/what-task-today-types'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { translate } from '@/i18n/i18n'
 import { CardDrawer } from './what-task-today-card-drawer'
 import { CardTable } from './what-task-today-card-table'
+import { IgnoredCardsSection } from './what-task-today-ignored-cards'
 import { ModelSelect } from './what-task-today-model-select'
 
 // Module-level (not component state) so an in-flight scan survives the page
@@ -182,23 +184,42 @@ export default function WhatTaskTodayPage(): React.JSX.Element {
         </div>
       </header>
 
-      {scanStatus || scanError ? (
-        <div className="flex w-full flex-col gap-2 px-3 pt-3 md:px-5">
-          {scanStatus ? (
-            <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-              {scanStatus}
-            </p>
+      <Tabs defaultValue="cards" className="min-h-0 flex-1">
+        <TabsList className="mx-3 w-fit md:mx-5">
+          <TabsTrigger value="cards">
+            {translate('auto.components.whatTaskToday.cardsTab', 'Cards')}
+          </TabsTrigger>
+          <TabsTrigger value="ignored">
+            {translate('auto.components.whatTaskToday.ignoredTab', 'Ignored')}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="cards" className="flex min-h-0 flex-col">
+          {scanStatus || scanError ? (
+            <div className="flex w-full flex-col gap-2 px-3 pt-3 md:px-5">
+              {scanStatus ? (
+                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  {scanStatus}
+                </p>
+              ) : null}
+              {scanError ? (
+                <p className="whitespace-pre-wrap rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {scanError}
+                </p>
+              ) : null}
+            </div>
           ) : null}
-          {scanError ? (
-            <p className="whitespace-pre-wrap rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {scanError}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-      <div className="min-h-0 flex-1 px-3 py-3 md:px-5">
-        <CardTable cards={cards} onSelect={setSelected} />
-      </div>
+          <div className="min-h-0 flex-1 px-3 py-3 md:px-5">
+            <CardTable cards={cards} onSelect={setSelected} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="ignored">
+          <div className="scrollbar-sleek overflow-y-auto px-3 md:px-5">
+            <IgnoredCardsSection />
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <CardDrawer
         card={selected}

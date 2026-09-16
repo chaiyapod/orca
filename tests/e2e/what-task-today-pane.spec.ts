@@ -1,7 +1,7 @@
 /**
  * The What Task Today top-level pane opens from the store action and renders
- * its empty state and Scan now control (MCP config / ignored cards / error log
- * live in Settings now, covered separately below).
+ * its empty state and Scan now control, plus a Cards/Ignored tab switcher
+ * (MCP config / error log still live in Settings, covered separately below).
  */
 
 import { test, expect } from './helpers/orca-app'
@@ -25,10 +25,14 @@ test.describe('what task today', () => {
     await expect(orcaPage.getByRole('button', { name: 'Scan now' })).toBeVisible()
     await expect(orcaPage.getByText('No summarized cards yet.')).toBeVisible()
 
+    await orcaPage.getByRole('tab', { name: 'Ignored' }).click()
+    await expect(orcaPage.getByRole('heading', { name: 'Ignored cards' })).toBeVisible()
+    await expect(orcaPage.getByText('No ignored cards.')).toBeVisible()
+
     await orcaPage.screenshot({ path: 'test-results/what-task-today-pane.png' })
   })
 
-  test('Settings has a What Task Today section with MCP config, ignored cards, error log, and clear data', async ({
+  test('Settings has a What Task Today section with MCP config, error log, and clear data', async ({
     orcaPage
   }) => {
     await orcaPage.evaluate(() => {
@@ -42,7 +46,6 @@ test.describe('what task today', () => {
     await expect(orcaPage.getByRole('heading', { name: 'What Task Today' })).toBeVisible()
     await expect(orcaPage.getByRole('heading', { name: 'Codebase MCP config' })).toBeVisible()
     await expect(orcaPage.getByRole('button', { name: 'Save' })).toBeVisible()
-    await expect(orcaPage.getByRole('heading', { name: 'Ignored cards' })).toBeVisible()
     await expect(orcaPage.getByRole('heading', { name: 'Error log' })).toBeVisible()
     await expect(orcaPage.getByRole('button', { name: 'Clear synced data' })).toBeVisible()
 

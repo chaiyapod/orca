@@ -22,16 +22,6 @@ export const getWhatTaskTodaySettingsSearchEntries = createLocalizedCatalog(() =
     ]
   },
   {
-    title: translate('auto.components.settings.whatTaskToday.ignoredTitle', 'Ignored cards'),
-    description: translate(
-      'auto.components.settings.whatTaskToday.ignoredDescription',
-      'These Jira cards are hidden from What Task Today. Remove one to bring it back.'
-    ),
-    keywords: [
-      ...translateSearchKeyword('auto.components.settings.whatTaskToday.keywordIgnore', 'ignore')
-    ]
-  },
-  {
     title: translate('auto.components.settings.whatTaskToday.errorLogTitle', 'Error log'),
     description: translate(
       'auto.components.settings.whatTaskToday.errorLogDescription',
