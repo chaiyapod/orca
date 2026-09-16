@@ -34,6 +34,18 @@ export function createUiViewActions(set: UISliceSet, get: UISliceGet): Partial<U
         activeView: state.previousViewBeforeAutomations,
         worktreeNavHistoryIndex: rewindHistoryIndexPastView(state, 'automations')
       })),
+    openWhatTaskTodayPage: () =>
+      set((state) => ({
+        activeView: 'what-task-today',
+        previousViewBeforeWhatTaskToday:
+          state.activeView === 'what-task-today'
+            ? state.previousViewBeforeWhatTaskToday
+            : state.activeView
+      })),
+    closeWhatTaskTodayPage: () =>
+      set((state) => ({
+        activeView: state.previousViewBeforeWhatTaskToday
+      })),
     openSpacePage: () => {
       get().recordFeatureInteraction?.('workspace-cleanup')
       set((state) => ({

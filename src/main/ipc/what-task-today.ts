@@ -1,0 +1,99 @@
+import { ipcMain } from 'electron'
+import {
+  readWhatTaskTodayMcpConfig,
+  saveWhatTaskTodayMcpConfig
+} from '../what-task-today/mcp-config-store'
+import { resolveJiraTitleForKey } from '../what-task-today/ignored-lookup'
+import { getWhatTaskTodayLog, recordWhatTaskTodayLogEntries } from '../what-task-today/scan-log'
+import {
+  clearWhatTaskTodayCards,
+  dismissWhatTaskTodayCard,
+  getWhatTaskTodayAgentContext,
+  hasWhatTaskTodayCard,
+  listWhatTaskTodayCards,
+  listWhatTaskTodayIgnored,
+  unignoreWhatTaskTodayCard
+} from '../what-task-today/summary-store'
+import {
+  readWhatTaskTodaySettings,
+  saveWhatTaskTodaySettings
+} from '../what-task-today/settings-store'
+import { replanWhatTaskTodayCard, scanWhatTaskToday } from '../what-task-today/summarizer'
+
+function normalizeKey(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+/** Registers every `whatTaskToday:*` IPC handler on the main process. */
+export function registerWhatTaskTodayHandlers(): void {
+  ipcMain.handle('whatTaskToday:scan', async () => {
+    try {
+      const result = await scanWhatTaskToday()
+      recordWhatTaskTodayLogEntries(result.errors)
+      return { ok: true, result }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      recordWhatTaskTodayLogEntries([message])
+      return { ok: false, error: message }
+    }
+  })
+
+  ipcMain.handle('whatTaskToday:list', async () => listWhatTaskTodayCards())
+
+  ipcMain.handle('whatTaskToday:replan', async (_event, args: { issueKey: string }) => {
+    const key = normalizeKey(args?.issueKey)
+    if (!key) {
+      return { ok: false, error: 'Issue key is required.' }
+    }
+    const response = await replanWhatTaskTodayCard(key)
+    if (!response.ok) {
+      recordWhatTaskTodayLogEntries([`${key}: ${response.error}`])
+    }
+    return response
+  })
+
+  ipcMain.handle('whatTaskToday:getLog', async () => getWhatTaskTodayLog())
+
+  ipcMain.handle('whatTaskToday:clearCards', async () => clearWhatTaskTodayCards())
+
+  ipcMain.handle('whatTaskToday:dismiss', async (_event, args: { issueKey: string }) => {
+    const key = normalizeKey(args?.issueKey)
+    if (!key) {
+      return
+    }
+    // A card we already scanned carries its own title/url; a manually
+    // entered key needs a one-time Jira lookup (bounded by a timeout so a
+    // slow/unreachable Jira can't hang this call).
+    const fallback = hasWhatTaskTodayCard(key) ? undefined : await resolveJiraTitleForKey(key)
+    dismissWhatTaskTodayCard(key, fallback)
+  })
+
+  ipcMain.handle('whatTaskToday:unignore', async (_event, args: { issueKey: string }) => {
+    const key = normalizeKey(args?.issueKey)
+    if (key) {
+      unignoreWhatTaskTodayCard(key)
+    }
+  })
+
+  ipcMain.handle('whatTaskToday:listIgnored', async () => listWhatTaskTodayIgnored())
+
+  ipcMain.handle('whatTaskToday:agentContext', async (_event, args: { issueKey: string }) => {
+    const key = normalizeKey(args?.issueKey)
+    return key ? getWhatTaskTodayAgentContext(key) : null
+  })
+
+  ipcMain.handle('whatTaskToday:getSettings', async () => readWhatTaskTodaySettings())
+
+  ipcMain.handle('whatTaskToday:setSettings', async (_event, args: { model: string | null }) => {
+    saveWhatTaskTodaySettings({ model: typeof args?.model === 'string' ? args.model : null })
+  })
+
+  ipcMain.handle('whatTaskToday:getMcpConfig', async () => readWhatTaskTodayMcpConfig())
+
+  ipcMain.handle('whatTaskToday:setMcpConfig', async (_event, args: { content: string }) => {
+    if (typeof args?.content !== 'string') {
+      return { ok: false, error: 'MCP config content is required.' }
+    }
+    return saveWhatTaskTodayMcpConfig(args.content)
+  })
+}

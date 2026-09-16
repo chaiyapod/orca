@@ -171,6 +171,15 @@ export function getLinkedWorkItemPromptContext(
       : { linkedUrls: [], linkedContextBlocks: [] }
   }
   const linkedUrl = linkedWorkItem?.url?.trim()
+  // Non-Linear providers (e.g. a Jira card carrying a pre-computed summary) inject
+  // their prose as a contained block when linkedContext is present.
+  const contextBlock = buildContainedLinkedContextBlock(linkedWorkItem?.linkedContext)
+  if (contextBlock) {
+    return {
+      linkedUrls: linkedUrl ? [linkedUrl] : [],
+      linkedContextBlocks: [contextBlock]
+    }
+  }
   return linkedUrl
     ? { linkedUrls: [linkedUrl], linkedContextBlocks: [] }
     : { linkedUrls: [], linkedContextBlocks: [] }
