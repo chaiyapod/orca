@@ -1,4 +1,5 @@
 import type {
+  WhatTaskTodayAgentContextFileResult,
   WhatTaskTodayCard,
   WhatTaskTodayIgnoredEntry,
   WhatTaskTodayLogEntry,
@@ -16,6 +17,10 @@ export type WhatTaskTodayApi = {
   unignore: (args: { issueKey: string }) => Promise<void>
   listIgnored: () => Promise<WhatTaskTodayIgnoredEntry[]>
   agentContext: (args: { issueKey: string }) => Promise<string | null>
+  writeAgentContextFile: (args: {
+    issueKey: string
+  }) => Promise<WhatTaskTodayAgentContextFileResult>
+  getDataFolderPath: () => Promise<string>
   getSettings: () => Promise<WhatTaskTodaySettings>
   setSettings: (args: Partial<WhatTaskTodaySettings>) => Promise<void>
   getMcpConfig: () => Promise<string | null>

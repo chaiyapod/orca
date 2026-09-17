@@ -103,19 +103,13 @@ export function useComposerSourceContextState(input: ComposerSourceContextStateI
     initialTaskSourceContext
   )
 
-  const initialLinkedWorkItemSeed =
-    normalizedInitialLinkedWorkItem &&
-    getLinkedWorkItemProvider(normalizedInitialLinkedWorkItem) === 'jira' &&
-    !initialLinkedTaskSourceContext
-      ? null
-      : normalizedInitialLinkedWorkItem
-
-  const draftLinkedWorkItemSeed =
-    normalizedDraftLinkedWorkItem &&
-    getLinkedWorkItemProvider(normalizedDraftLinkedWorkItem) === 'jira' &&
-    !draftLinkedTaskSourceContext
-      ? null
-      : normalizedDraftLinkedWorkItem
+  // Why: a Jira item without a matching taskSourceContext just means no repo
+  // was auto-matched (site/project lookup still pending or the caller never
+  // had a project to bind, e.g. a cross-project card) — it must not drop the
+  // item itself, or title/url/linkedContext (a pre-generated agent brief)
+  // vanish along with the repo match.
+  const initialLinkedWorkItemSeed = normalizedInitialLinkedWorkItem
+  const draftLinkedWorkItemSeed = normalizedDraftLinkedWorkItem
 
   const linkedWorkItemSeed = persistDraft
     ? (draftLinkedWorkItemSeed ?? initialLinkedWorkItemSeed)

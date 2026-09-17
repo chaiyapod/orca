@@ -7,12 +7,15 @@ import { join } from 'node:path'
 import { inspectMcpConfigContent, MCP_CONFIG_CANDIDATES } from '../../shared/mcp-config'
 import type { WhatTaskTodayMcpConfigSaveResult } from '../../shared/what-task-today-types'
 import { readStoredCredentialToken, writeEncryptedCredential } from '../integration-credential-file'
+import { migrateLegacyFile, whatTaskTodayDataDir } from './data-dir'
 
 // The `.mcp.json` workspace shape ({ "mcpServers": {...} }).
 const WORKSPACE_CANDIDATE = MCP_CONFIG_CANDIDATES[0]
 
 function configPath(): string {
-  return join(homedir(), '.orca', 'what-task-today-mcp.enc')
+  const path = join(whatTaskTodayDataDir(), 'mcp.enc')
+  migrateLegacyFile(join(homedir(), '.orca', 'what-task-today-mcp.enc'), path)
+  return path
 }
 
 export function readWhatTaskTodayMcpConfig(): string | null {

@@ -1,5 +1,6 @@
 import React from 'react'
-import { RefreshCw } from 'lucide-react'
+import { FolderOpen, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 import type { WhatTaskTodayLogEntry } from '../../../../shared/what-task-today-types'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -236,6 +237,19 @@ function ClearDataSection(): React.JSX.Element {
   const confirm = useConfirmationDialog()
   const [status, setStatus] = React.useState<string | null>(null)
 
+  const handleOpenDataFolder = React.useCallback(async () => {
+    const path = await window.api.whatTaskToday.getDataFolderPath()
+    const result = await window.api.shell.openInFileManager(path)
+    if (!result.ok) {
+      toast.error(
+        translate(
+          'auto.components.settings.whatTaskToday.openDataFolderFailed',
+          'Could not open folder'
+        )
+      )
+    }
+  }, [])
+
   const handleClear = React.useCallback(async () => {
     const confirmed = await confirm({
       title: translate(
@@ -270,6 +284,10 @@ function ClearDataSection(): React.JSX.Element {
         </p>
       </div>
       <div className="flex items-center gap-3">
+        <Button size="sm" variant="outline" onClick={() => void handleOpenDataFolder()}>
+          <FolderOpen className="size-4" />
+          {translate('auto.components.settings.whatTaskToday.openDataFolder', 'Open data folder')}
+        </Button>
         <Button size="sm" variant="destructive" onClick={() => void handleClear()}>
           {translate('auto.components.settings.whatTaskToday.clearDataButton', 'Clear synced data')}
         </Button>

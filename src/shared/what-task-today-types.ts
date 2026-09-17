@@ -47,6 +47,10 @@ export type WhatTaskTodayScanResponse =
 
 export type WhatTaskTodayMcpConfigSaveResult = { ok: true } | { ok: false; error: string }
 
+export type WhatTaskTodayAgentContextFileResult =
+  | { ok: true; path: string }
+  | { ok: false; error: string }
+
 export type WhatTaskTodayReplanResponse =
   | { ok: true; card: WhatTaskTodayCard }
   | { ok: false; error: string }

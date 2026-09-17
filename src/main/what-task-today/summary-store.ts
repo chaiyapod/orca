@@ -1,8 +1,8 @@
-// Disk-backed What Task Today store: ~/.orca/what-task-today.json.
+// Disk-backed What Task Today store: ~/.orca/what-task-today/cards.json.
 // Non-secret data, so a plain write (matching jira-sites.json) is fine.
 // ponytail: single-process cache + plain write; corruption just forces a rescan.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -11,6 +11,11 @@ import {
   type WhatTaskTodayIgnoredEntry,
   type WhatTaskTodayStoreFile
 } from '../../shared/what-task-today-types'
+import {
+  clearWhatTaskTodayAgentContextFiles,
+  deleteWhatTaskTodayAgentContextFile
+} from './agent-context-file'
+import { migrateLegacyFile, whatTaskTodayDataDir } from './data-dir'
 import {
   clearCardsInFile,
   dismissInFile,
@@ -26,7 +31,9 @@ import {
 let cached: WhatTaskTodayStoreFile | null = null
 
 function storePath(): string {
-  return join(homedir(), '.orca', 'what-task-today.json')
+  const path = join(whatTaskTodayDataDir(), 'cards.json')
+  migrateLegacyFile(join(homedir(), '.orca', 'what-task-today.json'), path)
+  return path
 }
 
 function readFromDisk(): WhatTaskTodayStoreFile {
@@ -50,10 +57,6 @@ function getFile(): WhatTaskTodayStoreFile {
 
 function persist(file: WhatTaskTodayStoreFile): void {
   cached = file
-  const dir = join(homedir(), '.orca')
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true })
-  }
   writeFileSync(storePath(), JSON.stringify(file, null, 2), { encoding: 'utf-8', mode: 0o600 })
 }
 
@@ -85,7 +88,14 @@ export function unignoreWhatTaskTodayCard(issueKey: string): void {
 }
 
 export function pruneWhatTaskTodayCards(liveKeys: readonly string[]): void {
-  persist(pruneCardsInFile(getFile(), liveKeys))
+  const before = getFile()
+  const after = pruneCardsInFile(before, liveKeys)
+  persist(after)
+  for (const issueKey of Object.keys(before.cards)) {
+    if (!Object.hasOwn(after.cards, issueKey)) {
+      deleteWhatTaskTodayAgentContextFile(issueKey)
+    }
+  }
 }
 
 export function getWhatTaskTodayAgentContext(issueKey: string): string | null {
@@ -98,4 +108,5 @@ export function listWhatTaskTodayIgnored(): WhatTaskTodayIgnoredEntry[] {
 
 export function clearWhatTaskTodayCards(): void {
   persist(clearCardsInFile(getFile()))
+  clearWhatTaskTodayAgentContextFiles()
 }

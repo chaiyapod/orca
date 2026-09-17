@@ -1,7 +1,7 @@
-// Summarizer settings (model choice) at ~/.orca/what-task-today-settings.json.
+// Summarizer settings (model choice) at ~/.orca/what-task-today/settings.json.
 // Non-secret; plain write like the summary store.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -10,9 +10,12 @@ import {
   type WhatTaskTodaySettings,
   type WhatTaskTodayStatusCategory
 } from '../../shared/what-task-today-types'
+import { migrateLegacyFile, whatTaskTodayDataDir } from './data-dir'
 
 function settingsPath(): string {
-  return join(homedir(), '.orca', 'what-task-today-settings.json')
+  const path = join(whatTaskTodayDataDir(), 'settings.json')
+  migrateLegacyFile(join(homedir(), '.orca', 'what-task-today-settings.json'), path)
+  return path
 }
 
 function isStatusCategory(value: unknown): value is WhatTaskTodayStatusCategory {
@@ -53,10 +56,6 @@ export function readWhatTaskTodaySettings(): WhatTaskTodaySettings {
 }
 
 export function saveWhatTaskTodaySettings(settings: WhatTaskTodaySettings): void {
-  const dir = join(homedir(), '.orca')
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true })
-  }
   const model = typeof settings.model === 'string' && settings.model.trim() ? settings.model : null
   const statusCategories = normalizeStatusCategories(settings.statusCategories)
   const prePrompt =

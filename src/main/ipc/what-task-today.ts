@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron'
 import type { WhatTaskTodaySettings } from '../../shared/what-task-today-types'
+import { writeWhatTaskTodayAgentContextFile } from '../what-task-today/agent-context-file'
+import { whatTaskTodayDataDir } from '../what-task-today/data-dir'
 import {
   readWhatTaskTodayMcpConfig,
   saveWhatTaskTodayMcpConfig
@@ -83,6 +85,17 @@ export function registerWhatTaskTodayHandlers(): void {
     return key ? getWhatTaskTodayAgentContext(key) : null
   })
 
+  ipcMain.handle(
+    'whatTaskToday:writeAgentContextFile',
+    async (_event, args: { issueKey: string }) => {
+      const key = normalizeKey(args?.issueKey)
+      if (!key) {
+        return { ok: false, error: 'Issue key is required.' }
+      }
+      return writeWhatTaskTodayAgentContextFile(key)
+    }
+  )
+
   ipcMain.handle('whatTaskToday:getSettings', async () => readWhatTaskTodaySettings())
 
   ipcMain.handle(
@@ -97,6 +110,8 @@ export function registerWhatTaskTodayHandlers(): void {
       })
     }
   )
+
+  ipcMain.handle('whatTaskToday:getDataFolderPath', async () => whatTaskTodayDataDir())
 
   ipcMain.handle('whatTaskToday:getMcpConfig', async () => readWhatTaskTodayMcpConfig())
 

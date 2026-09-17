@@ -13,6 +13,9 @@ export const whatTaskTodayApi = {
   listIgnored: () => ipcRenderer.invoke('whatTaskToday:listIgnored'),
   agentContext: (args: { issueKey: string }) =>
     ipcRenderer.invoke('whatTaskToday:agentContext', args),
+  writeAgentContextFile: (args: { issueKey: string }) =>
+    ipcRenderer.invoke('whatTaskToday:writeAgentContextFile', args),
+  getDataFolderPath: () => ipcRenderer.invoke('whatTaskToday:getDataFolderPath'),
   getSettings: () => ipcRenderer.invoke('whatTaskToday:getSettings'),
   setSettings: (args: Partial<WhatTaskTodaySettings>): Promise<void> =>
     ipcRenderer.invoke('whatTaskToday:setSettings', args),

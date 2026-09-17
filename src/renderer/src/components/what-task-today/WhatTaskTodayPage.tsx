@@ -136,15 +136,23 @@ export default function WhatTaskTodayPage(): React.JSX.Element {
     selected && inFlightReplans.has(selected.issueKey) ? selected.issueKey : null
 
   const handleStart = React.useCallback(
-    (card: WhatTaskTodayCard) => {
+    async (card: WhatTaskTodayCard) => {
+      // Why: pasting the full plan into the terminal prompt is unreadable for
+      // long plans — write it to disk and point the agent at the file instead.
+      const fileResult = card.agentContext
+        ? await window.api.whatTaskToday.writeAgentContextFile({ issueKey: card.issueKey })
+        : null
+      const renderedText = fileResult?.ok
+        ? `Implementation plan for ${card.issueKey} is saved at:\n${fileResult.path}\n\nRead it before starting.`
+        : null
       const linkedWorkItem = {
         ...buildJiraWorkspaceSource({ key: card.issueKey, title: card.title, url: card.url }),
-        ...(card.agentContext
+        ...(renderedText
           ? {
               linkedContext: {
                 provider: 'jira' as const,
                 version: 1 as const,
-                renderedText: card.agentContext
+                renderedText
               }
             }
           : {})
