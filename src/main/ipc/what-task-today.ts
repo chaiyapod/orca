@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, Notification } from 'electron'
 import type { WhatTaskTodaySettings } from '../../shared/what-task-today-types'
 import { writeWhatTaskTodayAgentContextFile } from '../what-task-today/agent-context-file'
 import { whatTaskTodayDataDir } from '../what-task-today/data-dir'
@@ -27,16 +27,33 @@ function normalizeKey(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+// Why: fires from the IPC handler (not the renderer) so a scan triggered
+// without the What Task Today page open — e.g. a future scheduled scan —
+// still surfaces failures. Plain OS notification: leaving `silent` unset
+// plays the system's default sound.
+function notifyWhatTaskTodayScanErrors(errors: readonly string[]): void {
+  if (errors.length === 0 || !Notification.isSupported()) {
+    return
+  }
+  const title =
+    errors.length === 1
+      ? 'What Task Today: 1 card failed to summarize'
+      : `What Task Today: ${errors.length} cards failed to summarize`
+  new Notification({ title, body: errors[0] }).show()
+}
+
 /** Registers every `whatTaskToday:*` IPC handler on the main process. */
 export function registerWhatTaskTodayHandlers(): void {
   ipcMain.handle('whatTaskToday:scan', async () => {
     try {
       const result = await scanWhatTaskToday()
       recordWhatTaskTodayLogEntries(result.errors)
+      notifyWhatTaskTodayScanErrors(result.errors)
       return { ok: true, result }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       recordWhatTaskTodayLogEntries([message])
+      notifyWhatTaskTodayScanErrors([message])
       return { ok: false, error: message }
     }
   })

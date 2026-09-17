@@ -174,15 +174,27 @@ function formatLogTimestamp(at: number): string {
   return new Date(at).toLocaleString()
 }
 
+// Why: getLog() is an in-memory read that resolves in well under a frame —
+// without a floor, the spinner flips true→false before the browser ever
+// paints it, so a click that did work looks like it did nothing.
+const MIN_ERROR_LOG_REFRESH_SPINNER_MS = 400
+
 function ErrorLogSection(): React.JSX.Element {
   const [entries, setEntries] = React.useState<WhatTaskTodayLogEntry[]>([])
   const [loading, setLoading] = React.useState(true)
 
   const refresh = React.useCallback(async () => {
     setLoading(true)
+    const startedAt = Date.now()
     try {
       setEntries(await window.api.whatTaskToday.getLog())
     } finally {
+      const elapsed = Date.now() - startedAt
+      if (elapsed < MIN_ERROR_LOG_REFRESH_SPINNER_MS) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, MIN_ERROR_LOG_REFRESH_SPINNER_MS - elapsed)
+        )
+      }
       setLoading(false)
     }
   }, [])
