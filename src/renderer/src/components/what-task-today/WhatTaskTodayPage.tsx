@@ -186,8 +186,8 @@ export default function WhatTaskTodayPage(): React.JSX.Element {
           <Button size="sm" onClick={handleScan} disabled={scanning}>
             <RefreshCw className={scanning ? 'size-4 animate-spin' : 'size-4'} />
             {scanning
-              ? translate('auto.components.whatTaskToday.scanning', 'Scanning…')
-              : translate('auto.components.whatTaskToday.scan', 'Scan now')}
+              ? translate('auto.components.whatTaskToday.scanning', 'Analyzing')
+              : translate('auto.components.whatTaskToday.scan', 'Analyze')}
           </Button>
         </div>
       </header>
