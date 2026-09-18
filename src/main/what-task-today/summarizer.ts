@@ -6,11 +6,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { JiraIssue } from '../../shared/jira-types'
-import {
-  resolveWhatTaskTodayStatusCategories,
-  type WhatTaskTodayCard,
-  type WhatTaskTodayReplanResponse,
-  type WhatTaskTodayScanResult
+import type {
+  WhatTaskTodayCard,
+  WhatTaskTodayReplanResponse,
+  WhatTaskTodayScanResult
 } from '../../shared/what-task-today-types'
 import { getIssue } from '../jira/issues'
 import { listIssues } from '../jira/jira-issue-search'
@@ -24,22 +23,26 @@ import { readWhatTaskTodaySettings } from './settings-store'
 import {
   pruneWhatTaskTodayCards,
   shouldReSummarizeCard,
+  upsertDetectedWhatTaskTodayCard,
   upsertWhatTaskTodayCard
 } from './summary-store'
 import { buildSummarizePrompt, parseSummary } from './summarizer-prompt'
 
 // JQL already filters resolution=Unresolved, which excludes most Done cards
-// on its own; this is the actual per-scan status-category gate the user
-// configures in Settings (default: To Do + In Progress).
-function isActionableCard(issue: JiraIssue, allowedCategories: readonly string[]): boolean {
-  return allowedCategories.includes(issue.status?.categoryKey ?? '')
+// on its own. statusNames is the exact-name allowlist from Settings; null
+// (never configured) falls back to every "new" (To Do) category status,
+// matching the pre-picker default without an extra Jira call.
+export function isActionableCard(issue: JiraIssue, statusNames: readonly string[] | null): boolean {
+  if (!statusNames) {
+    return issue.status?.categoryKey === 'new'
+  }
+  return statusNames.includes(issue.status?.name ?? '')
 }
 
 export async function scanWhatTaskToday(): Promise<WhatTaskTodayScanResult> {
   const settings = readWhatTaskTodaySettings()
-  const allowedCategories = resolveWhatTaskTodayStatusCategories(settings)
   const assigned = await listIssues('assigned', 50)
-  const issues = assigned.filter((issue) => isActionableCard(issue, allowedCategories))
+  const issues = assigned.filter((issue) => isActionableCard(issue, settings.statusNames))
   console.log(`[what-task-today] scan: ${assigned.length} assigned, ${issues.length} actionable`)
   const result: WhatTaskTodayScanResult = {
     scanned: issues.length,
@@ -51,6 +54,26 @@ export async function scanWhatTaskToday(): Promise<WhatTaskTodayScanResult> {
   const { model, prePrompt } = settings
 
   for (const issue of issues) {
+    // Why: always keep title/status fresh — cheap, no claude call — even for
+    // "new" cards that won't get a full resummarize this scan. Without this,
+    // a card summarized before status tracking existed (empty statusName)
+    // never heals: it already has agentContext, so shouldReSummarizeCard
+    // keeps saying no and its badge stays blank forever.
+    upsertDetectedWhatTaskTodayCard({
+      issueKey: issue.key,
+      title: issue.title,
+      url: issue.url,
+      statusCategory: issue.status?.categoryKey ?? 'new',
+      statusName: issue.status?.name ?? '',
+      updated: issue.updatedAt
+    })
+    // Why: only "new" (Todo) cards get the expensive agent summarize — cards
+    // already in progress are detected and listed with a status badge, not
+    // summarized, until the user explicitly asks (Re-plan) or they move back
+    // to "new".
+    if (issue.status?.categoryKey !== 'new') {
+      continue
+    }
     if (!shouldReSummarizeCard(issue.key, issue.updatedAt)) {
       result.skipped += 1
       continue
@@ -104,6 +127,8 @@ async function summarizeIssueIntoCard(
     issueKey: issue.key,
     title: issue.title,
     url: issue.url,
+    statusCategory: issue.status?.categoryKey ?? 'new',
+    statusName: issue.status?.name ?? '',
     updated: issue.updatedAt,
     humanSummary,
     agentContext,

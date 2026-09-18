@@ -5,11 +5,20 @@ export type WhatTaskTodayCard = {
   issueKey: string
   title: string
   url: string
-  // Jira `updated` timestamp (ISO string) — used to skip re-summarizing unchanged cards.
+  // Jira status category key (e.g. "new", "indeterminate") — only "new" cards
+  // get summarized by the agent; others are detected/listed only.
+  statusCategory: string
+  // Jira's own status name (e.g. "Develop"), shown as a badge — teams rename
+  // statuses within a category, so the category key alone isn't display-ready.
+  statusName: string
+  // Jira `updated` timestamp (ISO string) as of the last summarize — used to
+  // skip re-summarizing unchanged cards. Detect-only upserts leave this alone.
   updated: string
-  // Markdown, scannable in the morning.
+  // Markdown, scannable in the morning. Empty for a detect-only card (not yet
+  // in "new" status) that hasn't been summarized.
   humanSummary: string
   // Markdown, full implementation plan; injected as the agent's starting context on Start.
+  // Empty for a detect-only card.
   agentContext: string
   // Epoch ms the summary was generated.
   generatedAt: number
@@ -55,34 +64,18 @@ export type WhatTaskTodayReplanResponse =
   | { ok: true; card: WhatTaskTodayCard }
   | { ok: false; error: string }
 
-// Jira's built-in status categories (`status.categoryKey`).
-export type WhatTaskTodayStatusCategory = 'new' | 'indeterminate' | 'done'
-
-export const WHAT_TASK_TODAY_STATUS_CATEGORIES: {
-  key: WhatTaskTodayStatusCategory
-  label: string
-}[] = [
-  { key: 'new', label: 'To Do' },
-  { key: 'indeterminate', label: 'In Progress' },
-  { key: 'done', label: 'Done' }
-]
-
-// A scan without resolution=Unresolved cards already excludes most Done
-// cards at the Jira query level, so this is what the user actually controls.
-export const DEFAULT_WHAT_TASK_TODAY_STATUS_CATEGORIES: WhatTaskTodayStatusCategory[] = [
-  'new',
-  'indeterminate'
-]
-
 // Which Claude model the summarizer runs (`claude -p --model <model>`), and
-// which Jira status categories a scan pulls in.
+// which exact Jira status names a scan includes (picked in Settings from the
+// connected site's real status list, category "To Do"/"In Progress" only —
+// "Done" isn't offered since a scan never summarizes or detects it).
 // model: null = the CLI's default model (no flag).
-// statusCategories: null = default (To Do + In Progress).
+// statusNames: null = default (every status in Jira's "new"/To-Do category —
+// matches the old behavior, no live Jira call needed to resolve it).
 // prePrompt: null = no extra instructions; else prepended to every summarize prompt
 // (e.g. house conventions, which repos to prefer) ahead of the per-card instructions.
 export type WhatTaskTodaySettings = {
   model: string | null
-  statusCategories: WhatTaskTodayStatusCategory[] | null
+  statusNames: string[] | null
   prePrompt: string | null
 }
 
@@ -90,15 +83,7 @@ export type WhatTaskTodaySettings = {
 export const WHAT_TASK_TODAY_MODEL_OPTIONS = ['opus', 'sonnet', 'haiku'] as const
 
 export function emptyWhatTaskTodaySettings(): WhatTaskTodaySettings {
-  return { model: null, statusCategories: null, prePrompt: null }
-}
-
-export function resolveWhatTaskTodayStatusCategories(
-  settings: WhatTaskTodaySettings
-): WhatTaskTodayStatusCategory[] {
-  return settings.statusCategories && settings.statusCategories.length > 0
-    ? settings.statusCategories
-    : DEFAULT_WHAT_TASK_TODAY_STATUS_CATEGORIES
+  return { model: null, statusNames: null, prePrompt: null }
 }
 
 // A recorded scan/re-plan failure, shown as a rolling error log in Settings.

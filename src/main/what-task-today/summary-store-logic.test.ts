@@ -8,7 +8,8 @@ import {
   pruneCardsInFile,
   shouldReSummarize,
   unignoreInFile,
-  upsertCardInFile
+  upsertCardInFile,
+  upsertDetectedCardInFile
 } from './summary-store-logic'
 
 function card(overrides: Partial<WhatTaskTodayCard> = {}): WhatTaskTodayCard {
@@ -16,6 +17,8 @@ function card(overrides: Partial<WhatTaskTodayCard> = {}): WhatTaskTodayCard {
     issueKey: 'ABC-1',
     title: 'Do the thing',
     url: 'https://jira/ABC-1',
+    statusCategory: 'new',
+    statusName: 'To Do',
     updated: '2026-01-01T00:00:00.000Z',
     humanSummary: 'summary',
     agentContext: 'plan',
@@ -101,5 +104,74 @@ describe('summary-store-logic', () => {
     file = clearCardsInFile(file)
     expect(file.cards).toEqual({})
     expect(file.ignored['A-2']).toBeDefined()
+  })
+
+  it('re-summarizes a card that has never actually been summarized yet', () => {
+    const file = upsertDetectedCardInFile(emptyWhatTaskTodayStore(), {
+      issueKey: 'ABC-1',
+      title: 'Do the thing',
+      url: 'https://jira/ABC-1',
+      statusCategory: 'indeterminate',
+      statusName: 'In Progress',
+      updated: '2026-01-01T00:00:00.000Z'
+    })
+    // Same `updated` as stored, but agentContext is still empty — must still trigger.
+    expect(shouldReSummarize(file, 'ABC-1', '2026-01-01T00:00:00.000Z')).toBe(true)
+  })
+
+  describe('upsertDetectedCardInFile', () => {
+    it('creates a blank detect-only card when never summarized before', () => {
+      const file = upsertDetectedCardInFile(emptyWhatTaskTodayStore(), {
+        issueKey: 'ABC-1',
+        title: 'Do the thing',
+        url: 'https://jira/ABC-1',
+        statusCategory: 'indeterminate',
+        statusName: 'In Progress',
+        updated: '2026-01-01T00:00:00.000Z'
+      })
+      expect(file.cards['ABC-1']).toMatchObject({
+        statusCategory: 'indeterminate',
+        statusName: 'In Progress',
+        humanSummary: '',
+        agentContext: ''
+      })
+    })
+
+    it('keeps an existing summary/agentContext/updated when the card moves off "new"', () => {
+      let file = upsertCardInFile(emptyWhatTaskTodayStore(), card({ issueKey: 'ABC-1' }))
+      file = upsertDetectedCardInFile(file, {
+        issueKey: 'ABC-1',
+        title: 'Do the thing (renamed)',
+        url: 'https://jira/ABC-1',
+        statusCategory: 'indeterminate',
+        statusName: 'In Progress',
+        updated: '2026-05-01T00:00:00.000Z'
+      })
+      expect(file.cards['ABC-1']).toMatchObject({
+        title: 'Do the thing (renamed)',
+        statusCategory: 'indeterminate',
+        statusName: 'In Progress',
+        // Untouched from the original summarized card:
+        updated: '2026-01-01T00:00:00.000Z',
+        humanSummary: 'summary',
+        agentContext: 'plan'
+      })
+    })
+
+    it('does not resurrect a dismissed card', () => {
+      let file = dismissInFile(emptyWhatTaskTodayStore(), 'ABC-1', {
+        title: 'Do the thing',
+        url: 'https://jira/ABC-1'
+      })
+      file = upsertDetectedCardInFile(file, {
+        issueKey: 'ABC-1',
+        title: 'Do the thing',
+        url: 'https://jira/ABC-1',
+        statusCategory: 'indeterminate',
+        statusName: 'In Progress',
+        updated: '2026-01-01T00:00:00.000Z'
+      })
+      expect(file.cards['ABC-1']).toBeUndefined()
+    })
   })
 })

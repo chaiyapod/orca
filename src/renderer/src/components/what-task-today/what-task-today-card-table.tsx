@@ -4,6 +4,7 @@ import { formatUiRelativeTimeFromDate } from '@/i18n/relative-time-format'
 import { cn } from '@/lib/utils'
 import type { WhatTaskTodayCard } from '../../../../shared/what-task-today-types'
 import { translate } from '@/i18n/i18n'
+import { getJiraStatusTone } from '@/components/task-page-jira-status-tone'
 
 type CardSortColumn = 'issueKey' | 'title' | 'updated'
 type CardSortState = { column: CardSortColumn; direction: 'asc' | 'desc' }
@@ -18,10 +19,32 @@ function sortCards(cards: WhatTaskTodayCard[], sort: CardSortState): WhatTaskTod
   })
 }
 
-// Fixed-width Key/Updated columns, flexible Title — shared by the header row
-// and every data row so a native `overflow-y-auto` scroll on just the rows
-// (header sits outside it) never misaligns the columns.
-const CARD_GRID_COLUMNS = 'grid-cols-[110px_1fr_140px]'
+// Fixed-width Key/Status/Updated columns, flexible Title — shared by the
+// header row and every data row so a native `overflow-y-auto` scroll on just
+// the rows (header sits outside it) never misaligns the columns.
+const CARD_GRID_COLUMNS = 'grid-cols-[110px_1fr_150px_140px]'
+
+// Same pill markup + tone mapping as the Jira issue list on the Task page
+// (task-page-jira-issue-list.tsx) — reused via getJiraStatusTone.
+// Why: always renders a grid cell (even empty) — a conditional `null` here
+// would drop a DOM child and shift every column after it out of alignment
+// with the header, since the grid template is a fixed column count.
+function StatusBadge({ card }: { card: WhatTaskTodayCard }): React.JSX.Element {
+  return (
+    <span className="min-w-0">
+      {card.statusName ? (
+        <span
+          className={cn(
+            'inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
+            getJiraStatusTone(card.statusCategory)
+          )}
+        >
+          <span className="truncate">{card.statusName}</span>
+        </span>
+      ) : null}
+    </span>
+  )
+}
 
 function SortableColumnHeader({
   label,
@@ -98,6 +121,7 @@ export function CardTable({
           sort={sort}
           onSort={handleSort}
         />
+        <span>{translate('auto.components.whatTaskToday.colStatus', 'Status')}</span>
         <SortableColumnHeader
           label={translate('auto.components.whatTaskToday.colUpdated', 'Updated at')}
           column="updated"
@@ -117,6 +141,7 @@ export function CardTable({
           >
             <span className="whitespace-nowrap text-muted-foreground">{card.issueKey}</span>
             <span className="min-w-0 truncate text-foreground">{card.title}</span>
+            <StatusBadge card={card} />
             <span className="whitespace-nowrap text-muted-foreground">
               {formatUiRelativeTimeFromDate(card.updated)}
             </span>

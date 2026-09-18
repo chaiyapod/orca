@@ -25,7 +25,8 @@ import {
   pruneCardsInFile,
   shouldReSummarize,
   unignoreInFile,
-  upsertCardInFile
+  upsertCardInFile,
+  upsertDetectedCardInFile
 } from './summary-store-logic'
 
 let cached: WhatTaskTodayStoreFile | null = null
@@ -70,6 +71,17 @@ export function shouldReSummarizeCard(issueKey: string, updated: string): boolea
 
 export function upsertWhatTaskTodayCard(cardValue: WhatTaskTodayCard): void {
   persist(upsertCardInFile(getFile(), cardValue))
+}
+
+export function upsertDetectedWhatTaskTodayCard(
+  detected: Pick<
+    WhatTaskTodayCard,
+    'issueKey' | 'title' | 'url' | 'statusCategory' | 'statusName'
+  > & {
+    updated: string
+  }
+): void {
+  persist(upsertDetectedCardInFile(getFile(), detected))
 }
 
 export function dismissWhatTaskTodayCard(

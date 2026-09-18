@@ -11,4 +11,4 @@ export {
   listPriorities,
   searchUsers
 } from './jira-issue-create-metadata'
-export { getProjectStatusOrder, listTransitions } from './jira-transition-queries'
+export { getProjectStatusOrder, listStatuses, listTransitions } from './jira-transition-queries'

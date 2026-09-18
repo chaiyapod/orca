@@ -8,8 +8,8 @@ import {
   type WhatTaskTodayStoreFile
 } from '../../shared/what-task-today-types'
 
-// True when the card is new or Jira reports a newer `updated` than what we stored.
-// Ignored cards never re-summarize.
+// True when the card was never summarized, or Jira reports a newer `updated`
+// than what we stored at last summarize. Ignored cards never re-summarize.
 export function shouldReSummarize(
   file: WhatTaskTodayStoreFile,
   issueKey: string,
@@ -19,7 +19,7 @@ export function shouldReSummarize(
     return false
   }
   const existing = file.cards[issueKey]
-  return !existing || existing.updated !== updated
+  return !existing || !existing.agentContext || existing.updated !== updated
 }
 
 // Upsert by issue key. Ignored cards are dropped rather than stored.
@@ -31,6 +31,38 @@ export function upsertCardInFile(
     return file
   }
   return { ...file, cards: { ...file.cards, [card.issueKey]: card } }
+}
+
+// Detected (not "new" status) card: refresh identity/status only, never
+// invoking the agent. If the card already has a summary — it was summarized
+// while still "new" and has since moved on — that summary/agentContext and
+// its `updated` marker are kept untouched so a later move back to "new"
+// still re-triggers shouldReSummarize correctly.
+export function upsertDetectedCardInFile(
+  file: WhatTaskTodayStoreFile,
+  detected: Pick<
+    WhatTaskTodayCard,
+    'issueKey' | 'title' | 'url' | 'statusCategory' | 'statusName'
+  > & {
+    updated: string
+  }
+): WhatTaskTodayStoreFile {
+  if (Object.hasOwn(file.ignored, detected.issueKey)) {
+    return file
+  }
+  const existing = file.cards[detected.issueKey]
+  const card: WhatTaskTodayCard = {
+    issueKey: detected.issueKey,
+    title: detected.title,
+    url: detected.url,
+    statusCategory: detected.statusCategory,
+    statusName: detected.statusName,
+    updated: existing?.updated ?? detected.updated,
+    humanSummary: existing?.humanSummary ?? '',
+    agentContext: existing?.agentContext ?? '',
+    generatedAt: existing?.generatedAt ?? Date.now()
+  }
+  return { ...file, cards: { ...file.cards, [detected.issueKey]: card } }
 }
 
 // Dismiss = hide the card from the active list and remember the key so future
@@ -162,6 +194,12 @@ function normalizeCard(input: unknown): WhatTaskTodayCard | null {
   const humanSummary = f.get('humanSummary')
   const agentContext = f.get('agentContext')
   const generatedAt = f.get('generatedAt')
+  // Why: pre-existing stored cards predate status tracking; they were always
+  // summarized while "new", so that's the safe backward-compat default.
+  const statusCategoryRaw = f.get('statusCategory')
+  const statusNameRaw = f.get('statusName')
+  const statusCategory = typeof statusCategoryRaw === 'string' ? statusCategoryRaw : 'new'
+  const statusName = typeof statusNameRaw === 'string' ? statusNameRaw : ''
   if (
     typeof issueKey !== 'string' ||
     typeof title !== 'string' ||
@@ -173,5 +211,15 @@ function normalizeCard(input: unknown): WhatTaskTodayCard | null {
   ) {
     return null
   }
-  return { issueKey, title, url, updated, humanSummary, agentContext, generatedAt }
+  return {
+    issueKey,
+    title,
+    url,
+    statusCategory,
+    statusName,
+    updated,
+    humanSummary,
+    agentContext,
+    generatedAt
+  }
 }

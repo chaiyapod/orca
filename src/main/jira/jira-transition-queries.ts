@@ -1,4 +1,4 @@
-import type { JiraProjectStatusOrder, JiraTransition } from '../../shared/jira-types'
+import type { JiraProjectStatusOrder, JiraStatus, JiraTransition } from '../../shared/jira-types'
 import { acquire, release } from './request-queue'
 import { apiBasePath, jiraRequest } from './authenticated-request'
 import { clearToken, getClients, isAuthError } from './client'
@@ -11,6 +11,28 @@ import {
   type JiraPagedResponse,
   type JiraRecord
 } from './jira-record-pages'
+
+/** Lists every status defined on the site (not project-scoped). */
+export async function listStatuses(siteId?: string | null): Promise<JiraStatus[]> {
+  const entry = getClients(siteId)[0]
+  if (!entry) {
+    return []
+  }
+  await acquire()
+  try {
+    const response = await jiraRequest<JiraRecord[]>(entry, `${apiBasePath(entry.site)}/status`)
+    return response.map(mapStatus)
+  } catch (error) {
+    if (isAuthError(error)) {
+      clearToken(entry.site.id)
+      throw error
+    }
+    console.warn('[jira] listStatuses failed:', error)
+    return []
+  } finally {
+    release()
+  }
+}
 
 export async function listTransitions(
   key: string,

@@ -71,7 +71,16 @@ export function CardDrawer({
               </p>
             ) : null}
             <div className="scrollbar-sleek min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <CommentMarkdown content={card.humanSummary} variant="document" />
+              {card.humanSummary ? (
+                <CommentMarkdown content={card.humanSummary} variant="document" />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {translate(
+                    'auto.components.whatTaskToday.notSummarizedYet',
+                    'Not summarized yet — detected while in progress. Click Re-plan for a full brief and implementation plan.'
+                  )}
+                </p>
+              )}
               {card.agentContext ? (
                 <div className="mt-6 border-t border-border pt-4">
                   <h3 className="mb-2 text-sm font-semibold text-foreground">

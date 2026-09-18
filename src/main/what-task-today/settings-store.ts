@@ -6,9 +6,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import {
   emptyWhatTaskTodaySettings,
-  WHAT_TASK_TODAY_STATUS_CATEGORIES,
-  type WhatTaskTodaySettings,
-  type WhatTaskTodayStatusCategory
+  type WhatTaskTodaySettings
 } from '../../shared/what-task-today-types'
 import { migrateLegacyFile, whatTaskTodayDataDir } from './data-dir'
 
@@ -18,12 +16,10 @@ function settingsPath(): string {
   return path
 }
 
-function isStatusCategory(value: unknown): value is WhatTaskTodayStatusCategory {
-  return WHAT_TASK_TODAY_STATUS_CATEGORIES.some((category) => category.key === value)
-}
-
-function normalizeStatusCategories(value: unknown): WhatTaskTodayStatusCategory[] | null {
-  return Array.isArray(value) && value.every(isStatusCategory) && value.length > 0 ? value : null
+function normalizeStatusNames(value: unknown): string[] | null {
+  return Array.isArray(value) && value.every((v) => typeof v === 'string') && value.length > 0
+    ? value
+    : null
 }
 
 export function readWhatTaskTodaySettings(): WhatTaskTodaySettings {
@@ -37,9 +33,9 @@ export function readWhatTaskTodaySettings(): WhatTaskTodaySettings {
       parsed && typeof parsed === 'object' && 'model' in parsed && typeof parsed.model === 'string'
         ? parsed.model
         : null
-    const statusCategories =
-      parsed && typeof parsed === 'object' && 'statusCategories' in parsed
-        ? normalizeStatusCategories(parsed.statusCategories)
+    const statusNames =
+      parsed && typeof parsed === 'object' && 'statusNames' in parsed
+        ? normalizeStatusNames(parsed.statusNames)
         : null
     const prePrompt =
       parsed &&
@@ -49,7 +45,7 @@ export function readWhatTaskTodaySettings(): WhatTaskTodaySettings {
       parsed.prePrompt.trim()
         ? parsed.prePrompt
         : null
-    return { model, statusCategories, prePrompt }
+    return { model, statusNames, prePrompt }
   } catch {
     return emptyWhatTaskTodaySettings()
   }
@@ -57,10 +53,10 @@ export function readWhatTaskTodaySettings(): WhatTaskTodaySettings {
 
 export function saveWhatTaskTodaySettings(settings: WhatTaskTodaySettings): void {
   const model = typeof settings.model === 'string' && settings.model.trim() ? settings.model : null
-  const statusCategories = normalizeStatusCategories(settings.statusCategories)
+  const statusNames = normalizeStatusNames(settings.statusNames)
   const prePrompt =
     typeof settings.prePrompt === 'string' && settings.prePrompt.trim() ? settings.prePrompt : null
-  writeFileSync(settingsPath(), JSON.stringify({ model, statusCategories, prePrompt }, null, 2), {
+  writeFileSync(settingsPath(), JSON.stringify({ model, statusNames, prePrompt }, null, 2), {
     encoding: 'utf-8',
     mode: 0o600
   })
