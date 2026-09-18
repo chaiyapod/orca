@@ -1,73 +1,88 @@
 import React from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { formatUiRelativeTimeFromDate } from '@/i18n/relative-time-format'
 import { cn } from '@/lib/utils'
 import type { WhatTaskTodayCard } from '../../../../shared/what-task-today-types'
 import { translate } from '@/i18n/i18n'
 import { getJiraStatusTone } from '@/components/task-page-jira-status-tone'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
-type CardSortColumn = 'issueKey' | 'title' | 'updated'
-type CardSortState = { column: CardSortColumn; direction: 'asc' | 'desc' }
-
-function sortCards(cards: WhatTaskTodayCard[], sort: CardSortState): WhatTaskTodayCard[] {
-  const factor = sort.direction === 'asc' ? 1 : -1
-  return [...cards].sort((a, b) => {
-    if (sort.column === 'updated') {
-      return (new Date(a.updated).getTime() - new Date(b.updated).getTime()) * factor
-    }
-    return a[sort.column].localeCompare(b[sort.column]) * factor
-  })
-}
-
-// Fixed-width Key/Status/Updated columns, flexible Title — shared by the
-// header row and every data row so a native `overflow-y-auto` scroll on just
-// the rows (header sits outside it) never misaligns the columns.
+// Fixed-width Key/Status/Updated columns, flexible Title — shared by every
+// row so a native `overflow-y-auto` scroll never misaligns the columns.
 const CARD_GRID_COLUMNS = 'grid-cols-[110px_1fr_150px_140px]'
 
-// Same pill markup + tone mapping as the Jira issue list on the Task page
-// (task-page-jira-issue-list.tsx) — reused via getJiraStatusTone.
-// Why: always renders a grid cell (even empty) — a conditional `null` here
-// would drop a DOM child and shift every column after it out of alignment
-// with the header, since the grid template is a fixed column count.
-function StatusBadge({ card }: { card: WhatTaskTodayCard }): React.JSX.Element {
-  return (
-    <span className="min-w-0">
-      {card.statusName ? (
-        <span
-          className={cn(
-            'inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
-            getJiraStatusTone(card.statusCategory)
-          )}
-        >
-          <span className="truncate">{card.statusName}</span>
-        </span>
-      ) : null}
-    </span>
+// Same category order What Task Today scans in ("new" before "indeterminate";
+// "done" never appears since a scan neither summarizes nor detects it).
+const STATUS_CATEGORY_RANK: Record<string, number> = { new: 0, indeterminate: 1, done: 2 }
+
+type CardStatusSection = {
+  key: string
+  label: string
+  categoryRank: number
+  cards: WhatTaskTodayCard[]
+}
+
+// Same grouping shape as the Task page's Jira list
+// (groupJiraIssuesByStatus in task-page-jira-issue-list.tsx), keyed by exact
+// status name — sorted by category (To Do before In Progress) since a board
+// column order isn't available here.
+function groupCardsByStatus(cards: readonly WhatTaskTodayCard[]): CardStatusSection[] {
+  const sections = new Map<string, CardStatusSection>()
+  for (const card of cards) {
+    const label = card.statusName || translate('auto.components.whatTaskToday.colStatus', 'Status')
+    const key = `status:${label}`
+    const existing = sections.get(key)
+    if (existing) {
+      existing.cards.push(card)
+    } else {
+      sections.set(key, {
+        key,
+        label,
+        categoryRank: STATUS_CATEGORY_RANK[card.statusCategory] ?? 99,
+        cards: [card]
+      })
+    }
+  }
+  return [...sections.values()].sort((a, b) =>
+    a.categoryRank === b.categoryRank
+      ? a.label.localeCompare(b.label)
+      : a.categoryRank - b.categoryRank
   )
 }
 
-function SortableColumnHeader({
-  label,
-  column,
-  sort,
-  onSort
+function CardRow({
+  card,
+  onSelect
 }: {
-  label: string
-  column: CardSortColumn
-  sort: CardSortState
-  onSort: (column: CardSortColumn) => void
+  card: WhatTaskTodayCard
+  onSelect: (card: WhatTaskTodayCard) => void
 }): React.JSX.Element {
-  const active = sort.column === column
-  const Icon = active ? (sort.direction === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
   return (
-    <button
-      type="button"
-      onClick={() => onSort(column)}
-      className="inline-flex items-center gap-1 text-left hover:text-foreground"
+    <div
+      onClick={() => onSelect(card)}
+      className={cn(
+        'grid cursor-pointer items-center px-4 py-3 text-sm hover:bg-muted/50',
+        CARD_GRID_COLUMNS
+      )}
     >
-      {label}
-      <Icon className={active ? 'size-3.5' : 'size-3.5 opacity-40'} />
-    </button>
+      <span className="whitespace-nowrap text-muted-foreground">{card.issueKey}</span>
+      <span className="min-w-0 truncate text-foreground">{card.title}</span>
+      <span className="min-w-0">
+        {card.statusName ? (
+          <span
+            className={cn(
+              'inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
+              getJiraStatusTone(card.statusCategory)
+            )}
+          >
+            <span className="truncate">{card.statusName}</span>
+          </span>
+        ) : null}
+      </span>
+      <span className="whitespace-nowrap text-muted-foreground">
+        {formatUiRelativeTimeFromDate(card.updated)}
+      </span>
+    </div>
   )
 }
 
@@ -78,15 +93,7 @@ export function CardTable({
   cards: WhatTaskTodayCard[]
   onSelect: (card: WhatTaskTodayCard) => void
 }): React.JSX.Element {
-  const [sort, setSort] = React.useState<CardSortState>({ column: 'updated', direction: 'desc' })
-
-  const handleSort = React.useCallback((column: CardSortColumn) => {
-    setSort((current) =>
-      current.column === column
-        ? { column, direction: current.direction === 'asc' ? 'desc' : 'asc' }
-        : { column, direction: column === 'updated' ? 'desc' : 'asc' }
-    )
-  }, [])
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(() => new Set())
 
   if (cards.length === 0) {
     return (
@@ -100,53 +107,57 @@ export function CardTable({
       </div>
     )
   }
-  const sortedCards = sortCards(cards, sort)
+
+  const sections = groupCardsByStatus(cards)
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-md border border-border">
-      <div
-        className={cn(
-          'grid h-10 flex-none items-center border-b border-border bg-muted/35 px-4 text-xs font-medium text-muted-foreground',
-          CARD_GRID_COLUMNS
-        )}
-      >
-        <SortableColumnHeader
-          label={translate('auto.components.whatTaskToday.colKey', 'Key')}
-          column="issueKey"
-          sort={sort}
-          onSort={handleSort}
-        />
-        <SortableColumnHeader
-          label={translate('auto.components.whatTaskToday.colTitle', 'Title')}
-          column="title"
-          sort={sort}
-          onSort={handleSort}
-        />
-        <span>{translate('auto.components.whatTaskToday.colStatus', 'Status')}</span>
-        <SortableColumnHeader
-          label={translate('auto.components.whatTaskToday.colUpdated', 'Updated at')}
-          column="updated"
-          sort={sort}
-          onSort={handleSort}
-        />
-      </div>
-      <div className="scrollbar-sleek min-h-0 flex-1 overflow-y-auto">
-        {sortedCards.map((card) => (
-          <div
-            key={card.issueKey}
-            onClick={() => onSelect(card)}
-            className={cn(
-              'grid cursor-pointer items-center border-b border-border px-4 py-3 text-sm last:border-b-0 hover:bg-muted/50',
-              CARD_GRID_COLUMNS
-            )}
-          >
-            <span className="whitespace-nowrap text-muted-foreground">{card.issueKey}</span>
-            <span className="min-w-0 truncate text-foreground">{card.title}</span>
-            <StatusBadge card={card} />
-            <span className="whitespace-nowrap text-muted-foreground">
-              {formatUiRelativeTimeFromDate(card.updated)}
-            </span>
-          </div>
-        ))}
+    <div className="scrollbar-sleek h-full overflow-y-auto rounded-md border border-border">
+      <div className="divide-y divide-border/50">
+        {sections.map((section) => {
+          const open = !collapsedGroups.has(section.key)
+          return (
+            <Collapsible
+              key={section.key}
+              open={open}
+              onOpenChange={(nextOpen) => {
+                setCollapsedGroups((current) => {
+                  const next = new Set(current)
+                  if (nextOpen) {
+                    next.delete(section.key)
+                  } else {
+                    next.add(section.key)
+                  }
+                  return next
+                })
+              }}
+            >
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex h-9 w-full items-center justify-start gap-2 bg-muted/35 px-3 text-left transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
+                >
+                  {open ? (
+                    <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="min-w-0 truncate text-[13px] font-medium text-foreground">
+                    {section.label}
+                  </span>
+                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                    {section.cards.length}
+                  </span>
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="divide-y divide-border/50 border-t border-border/50">
+                  {section.cards.map((card) => (
+                    <CardRow key={card.issueKey} card={card} onSelect={onSelect} />
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )
+        })}
       </div>
     </div>
   )
