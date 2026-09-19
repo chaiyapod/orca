@@ -4,6 +4,12 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Distinct name/appId/protocol -> installs BESIDE real Orca: own .app, userData
+# dir, single-instance lock, and no LaunchServices / orca:// clash.
+export ORCA_FORK_PRODUCT_NAME="${ORCA_FORK_PRODUCT_NAME:-Orca Ohtraeo}"
+export ORCA_FORK_APP_ID="${ORCA_FORK_APP_ID:-com.stablyai.orca.ohtraeo}"
+export ORCA_FORK_PROTOCOL="${ORCA_FORK_PROTOCOL:-orca-ohtraeo}"
+
 NODE24_BIN="$(ls -d "$HOME"/.volta/tools/image/node/24.*/bin 2>/dev/null | sort -V | tail -1)"
 [ -n "$NODE24_BIN" ] || { echo "node 24 not found. run: volta install node@24"; exit 1; }
 
@@ -13,6 +19,8 @@ export PATH="$NODE24_BIN:$PATH"
 corepack enable --install-directory "$SHIM" pnpm
 export PATH="$SHIM:$PATH"
 
+echo "building '$ORCA_FORK_PRODUCT_NAME' ($ORCA_FORK_APP_ID)"
 echo "node: $(node --version)  pnpm: $(pnpm --version)"
 pnpm build:mac
 echo "done -> dist/orca-macos-arm64.dmg  dist/orca-macos-x64.dmg"
+echo "installs as '$ORCA_FORK_PRODUCT_NAME.app'; data in ~/Library/Application Support/$ORCA_FORK_PRODUCT_NAME"
