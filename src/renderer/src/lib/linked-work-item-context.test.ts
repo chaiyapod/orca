@@ -233,6 +233,25 @@ describe('resolveQuickCreateLinkedWorkItemPrompt', () => {
       draftPrompt: 'note\n\nhttps://github.com/acme/repo/issues/42'
     })
   })
+
+  it('drafts the note above the linked context block for a Jira quick create', () => {
+    const result = resolveQuickCreateLinkedWorkItemPrompt(
+      {
+        provider: 'jira',
+        number: 0,
+        url: 'https://jira.example.com/browse/HEAL-1234',
+        linkedContext: {
+          provider: 'jira',
+          version: 1,
+          renderedText: 'THIS IS THE RICH PLAN TEXT'
+        }
+      },
+      'note'
+    )
+    expect(result.prompt).toBe('')
+    expect(result.draftPrompt).toContain('THIS IS THE RICH PLAN TEXT')
+    expect(result.draftPrompt).toContain('https://jira.example.com/browse/HEAL-1234')
+  })
 })
 
 describe('getLaunchableWorkItemDraftContent', () => {

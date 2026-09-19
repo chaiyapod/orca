@@ -7,6 +7,7 @@ import { MobileSettingsPane } from './MobileSettingsPane'
 import { OrcaAccountSettingsPane } from './OrcaAccountSettingsPane'
 import { SettingsSetupGuidePane } from './SettingsSetupGuidePane'
 import { ShareSkillsSettingsPane } from './ShareSkillsSettingsPane'
+import { WhatTaskTodaySettingsPane } from './WhatTaskTodaySettingsPane'
 import { SettingsSection } from './SettingsSection'
 import { translate } from '@/i18n/i18n'
 import type { SettingsRenderContext } from './settings-render-context'
@@ -134,6 +135,25 @@ export function renderAutomationsSettingsSection(
       {view.isSectionMounted('automations') ? (
         <AutomationsSettingsPane settings={model.settings} updateSettings={model.updateSettings} />
       ) : null}
+    </SettingsSection>
+  )
+}
+
+export function renderWhatTaskTodaySettingsSection(
+  context: SettingsRenderContext
+): React.JSX.Element {
+  const { navigation, view } = context
+  return (
+    <SettingsSection
+      id="what-task-today"
+      title={translate('auto.components.settings.whatTaskToday.title', 'What Task Today')}
+      description={translate(
+        'auto.components.settings.whatTaskToday.description',
+        'Scan conditions, codebase MCP config, and the sync error log.'
+      )}
+      searchEntries={navigation.getSectionSearchEntries('what-task-today')}
+    >
+      {view.isSectionMounted('what-task-today') ? <WhatTaskTodaySettingsPane /> : null}
     </SettingsSection>
   )
 }
