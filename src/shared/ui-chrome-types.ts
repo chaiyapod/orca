@@ -116,6 +116,7 @@ export type TopLevelView =
   | 'tasks'
   | 'activity'
   | 'automations'
+  | 'what-task-today'
   | 'space'
   | 'skills'
   | 'artifacts'

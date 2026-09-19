@@ -76,6 +76,8 @@ export const jiraApi = {
 
   listPriorities: (args?: { siteId?: string }) => ipcRenderer.invoke('jira:listPriorities', args),
 
+  listStatuses: (args?: { siteId?: string }) => ipcRenderer.invoke('jira:listStatuses', args),
+
   listAssignableUsers: (args: { key: string; query?: string; siteId?: string }) =>
     ipcRenderer.invoke('jira:listAssignableUsers', args),
   searchUsers: (args?: { query?: string; siteId?: string }) =>

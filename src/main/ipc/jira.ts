@@ -15,6 +15,7 @@ import {
   listIssues,
   listPriorities,
   listProjects,
+  listStatuses,
   listTransitions,
   searchIssues,
   searchUsers,
@@ -283,6 +284,10 @@ export function registerJiraHandlers(): void {
 
   ipcMain.handle('jira:listPriorities', async (_event, args?: { siteId?: string }) => {
     return listPriorities(normalizeSiteId(args?.siteId))
+  })
+
+  ipcMain.handle('jira:listStatuses', async (_event, args?: { siteId?: string }) => {
+    return listStatuses(normalizeSiteId(args?.siteId))
   })
 
   ipcMain.handle(

@@ -20,7 +20,8 @@ import {
   renderMobileSettingsSection,
   renderOrcaAccountSettingsSection,
   renderSetupGuideSettingsSection,
-  renderShareSkillsSettingsSection
+  renderShareSkillsSettingsSection,
+  renderWhatTaskTodaySettingsSection
 } from './settings-setup-workflow-section-renderers'
 import {
   renderGitSettingsSection,
@@ -126,6 +127,7 @@ export function renderSettingsPage(context: SettingsRenderContext): React.JSX.El
                 {renderIntegrationsSettingsSection(context)}
                 {renderMobileSettingsSection(context)}
                 {renderAutomationsSettingsSection(context)}
+                {renderWhatTaskTodaySettingsSection(context)}
                 {renderArtifactsSettingsSection(context)}
                 {renderShareSkillsSettingsSection(context)}
                 {renderSessionHistorySettingsSection(context)}

@@ -1,5 +1,13 @@
 import React from 'react'
-import { BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'
+import {
+  BookOpen,
+  CalendarClock,
+  ClipboardList,
+  EyeOff,
+  Files,
+  Search,
+  Smartphone
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store'
 import { cn } from '@/lib/utils'
@@ -56,6 +64,7 @@ const SidebarNav = React.memo(function SidebarNav() {
   useTranslation()
   const worktreePaletteShortcutCombos = useShortcutKeyComboDetails('worktree.palette')
   const openAutomationsPage = useAppStore((s) => s.openAutomationsPage)
+  const openWhatTaskTodayPage = useAppStore((s) => s.openWhatTaskTodayPage)
   const openMobilePage = useAppStore((s) => s.openMobilePage)
   const openArtifactsPage = useAppStore((s) => s.openArtifactsPage)
   const openSkillsPage = useAppStore((s) => s.openSkillsPage)
@@ -68,6 +77,7 @@ const SidebarNav = React.memo(function SidebarNav() {
   const showArtifactsButton = useAppStore((s) => shouldShowArtifactsButton(s.settings))
   const showSkillsButton = useAppStore((s) => shouldShowSkillsButton(s.settings))
   const automationsActive = activeView === 'automations'
+  const whatTaskTodayActive = activeView === 'what-task-today'
   const mobileActive = activeView === 'mobile'
   const artifactsActive = activeView === 'artifacts'
   const skillsActive = activeView === 'skills'
@@ -179,6 +189,28 @@ const SidebarNav = React.memo(function SidebarNav() {
           <HideSidebarMenu onHide={hideSkillsButton} />
         </ContextMenu>
       ) : null}
+      <button
+        type="button"
+        onClick={openWhatTaskTodayPage}
+        aria-current={whatTaskTodayActive ? 'page' : undefined}
+        className={cn(
+          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium tracking-tight transition-colors',
+          whatTaskTodayActive
+            ? 'bg-worktree-sidebar-accent text-worktree-sidebar-accent-foreground'
+            : 'text-worktree-sidebar-foreground/60 hover:bg-worktree-sidebar-foreground/8'
+        )}
+      >
+        <ClipboardList
+          className={cn(
+            'size-4 shrink-0',
+            !whatTaskTodayActive && 'text-worktree-sidebar-foreground/30'
+          )}
+          strokeWidth={whatTaskTodayActive ? 2.25 : 1.75}
+        />
+        <span className="flex-1">
+          {translate('auto.components.sidebar.SidebarNav.whatTaskToday', 'What Task Today')}
+        </span>
+      </button>
       {showAutomationsButton ? (
         <ContextMenu>
           <ContextMenuTrigger asChild>

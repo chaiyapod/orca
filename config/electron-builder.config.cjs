@@ -68,7 +68,10 @@ const devChannelRepo = isHourlyChannel
     : isAdhocChannel
       ? 'orca-adhoc'
       : null
-const appId = 'com.stablyai.orca'
+// ponytail: ORCA_FORK_* lets a personal fork build install beside the real app; defaults unchanged.
+const appId = process.env.ORCA_FORK_APP_ID || 'com.stablyai.orca'
+const productName = process.env.ORCA_FORK_PRODUCT_NAME || 'Orca'
+const protocolScheme = process.env.ORCA_FORK_PROTOCOL || 'orca'
 const featureWallResources = {
   from: 'resources/onboarding/feature-wall',
   to: 'onboarding/feature-wall'
@@ -165,8 +168,8 @@ const windowsRuntimeResources = existsSync(
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
   appId,
-  productName: 'Orca',
-  protocols: [{ name: 'Orca', schemes: ['orca'] }],
+  productName,
+  protocols: [{ name: productName, schemes: [protocolScheme] }],
   toolsets: { appimage: '1.0.3' },
   ...(devChannelBuildVersion
     ? { extraMetadata: { version: devChannelBuildVersion } }

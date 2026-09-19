@@ -9,11 +9,13 @@ import { getMobileEmulatorSearchEntries } from '@/components/settings/mobile-emu
 import { getQuickCommandsPaneSearchEntries } from '@/components/settings/quick-commands-search'
 import { getShareSkillsSettingsSearchEntries } from '@/components/settings/share-skills-settings-search'
 import { getTasksPaneSearchEntries } from '@/components/settings/tasks-search'
+import { getWhatTaskTodaySettingsSearchEntries } from '@/components/settings/what-task-today-settings-search'
 import { translate } from '@/i18n/i18n'
 import type { SettingsNavSection } from '@/lib/settings-navigation-types'
 import {
   BookOpen,
   CalendarClock,
+  ClipboardList,
   Files,
   History,
   GitBranch,
@@ -106,6 +108,20 @@ export function buildWorkflowSettingsSections(
         ...getCommitMessageAiPaneSearchEntries(),
         ...getGitProviderApiBudgetSearchEntries()
       ],
+      group: 'workflows'
+    },
+    {
+      id: 'what-task-today',
+      title: translate(
+        'auto.hooks.useSettingsNavigationMetadata.whatTaskTodayTitle',
+        'What Task Today'
+      ),
+      description: translate(
+        'auto.hooks.useSettingsNavigationMetadata.whatTaskTodayDescription',
+        'Scan conditions, codebase MCP config, and the sync error log.'
+      ),
+      icon: ClipboardList,
+      searchEntries: getWhatTaskTodaySettingsSearchEntries(),
       group: 'workflows'
     },
     {

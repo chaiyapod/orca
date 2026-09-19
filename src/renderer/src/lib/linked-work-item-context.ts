@@ -171,6 +171,15 @@ export function getLinkedWorkItemPromptContext(
       : { linkedUrls: [], linkedContextBlocks: [] }
   }
   const linkedUrl = linkedWorkItem?.url?.trim()
+  // Non-Linear providers (e.g. a Jira card carrying a pre-computed summary) inject
+  // their prose as a contained block when linkedContext is present.
+  const contextBlock = buildContainedLinkedContextBlock(linkedWorkItem?.linkedContext)
+  if (contextBlock) {
+    return {
+      linkedUrls: linkedUrl ? [linkedUrl] : [],
+      linkedContextBlocks: [contextBlock]
+    }
+  }
   return linkedUrl
     ? { linkedUrls: [linkedUrl], linkedContextBlocks: [] }
     : { linkedUrls: [], linkedContextBlocks: [] }
@@ -216,7 +225,8 @@ export function resolveQuickCreateLinkedWorkItemPrompt(
   note: string
 ): { prompt: string; draftPrompt: string | null } {
   const trimmedNote = note.trim()
-  const linearBlock = isLinearWorkItemReference(linkedWorkItem)
+  const isLinear = isLinearWorkItemReference(linkedWorkItem)
+  const linearBlock = isLinear
     ? buildLinearLaunchContextBlock({
         provider: linkedWorkItem?.provider,
         identifier: linkedWorkItem?.linearIdentifier,
@@ -226,11 +236,22 @@ export function resolveQuickCreateLinkedWorkItemPrompt(
     : null
   const linearDraft = linearBlock ? formatDraftContextBlock(linearBlock) : null
   const linkedUrl = linkedWorkItem?.url?.trim() || null
+  // Non-Linear providers (e.g. a Jira card carrying a pre-computed summary) get
+  // their prose included here too — matches getLinkedWorkItemPromptContext,
+  // which the full-worktree submit path already uses.
+  const containedBlock = isLinear
+    ? null
+    : buildContainedLinkedContextBlock(linkedWorkItem?.linkedContext)
+  const containedDraft = containedBlock
+    ? formatDraftContextBlock(linkedUrl ? [linkedUrl, containedBlock].join('\n') : containedBlock)
+    : null
   const draftPrompt = linearDraft
     ? [trimmedNote, linearDraft].filter(Boolean).join('\n\n')
-    : linkedUrl
-      ? [trimmedNote, linkedUrl].filter(Boolean).join('\n\n')
-      : null
+    : containedDraft
+      ? [trimmedNote, containedDraft].filter(Boolean).join('\n\n')
+      : linkedUrl
+        ? [trimmedNote, linkedUrl].filter(Boolean).join('\n\n')
+        : null
   const isLinearTypedOnly = linkedWorkItem?.number === 0 && Boolean(trimmedNote) && !draftPrompt
   return {
     prompt: isLinearTypedOnly ? trimmedNote : '',
