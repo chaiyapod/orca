@@ -33,6 +33,7 @@ import type { GitLabApi } from './api/gitlab-api'
 import type { BitbucketApi, HostedReviewApi } from './api/hosted-review-api'
 import type { JiraApi } from './api/jira-api'
 import type { WhatTaskTodayApi } from './api/what-task-today-api'
+import type { ForkUpdateApi } from './api/fork-update-api'
 import type { LinearApi } from './api/linear-api'
 import type { MobileApi } from './api/mobile-api'
 import type { NativeChatApi } from './api/native-chat-api'
@@ -91,6 +92,7 @@ export type PreloadApi = {
   linear: LinearApi
   jira: JiraApi
   whatTaskToday: WhatTaskTodayApi
+  forkUpdate: ForkUpdateApi
   starNag: StarNagApi
   telemetryTrack: TelemetryApi['telemetryTrack']
   telemetrySetOptIn: TelemetryApi['telemetrySetOptIn']

@@ -31,6 +31,7 @@ import { bitbucketApi } from './api/bitbucket-bridge'
 import { linearApi } from './api/linear-bridge'
 import { jiraApi } from './api/jira-bridge'
 import { whatTaskTodayApi } from './api/what-task-today-bridge'
+import { forkUpdateApi } from './api/fork-update-bridge'
 import { starNagApi } from './api/star-nag-bridge'
 import { diagnosticsApi } from './api/diagnostics-bridge'
 import { settingsApi } from './api/settings-bridge'
@@ -126,6 +127,7 @@ const api = {
   linear: linearApi,
   jira: jiraApi,
   whatTaskToday: whatTaskTodayApi,
+  forkUpdate: forkUpdateApi,
   starNag: starNagApi,
   telemetryTrack: telemetryTrackApi,
   telemetrySetOptIn: telemetrySetOptInApi,
