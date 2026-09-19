@@ -72,6 +72,11 @@ const devChannelRepo = isHourlyChannel
 const appId = process.env.ORCA_FORK_APP_ID || 'com.stablyai.orca'
 const productName = process.env.ORCA_FORK_PRODUCT_NAME || 'Orca'
 const protocolScheme = process.env.ORCA_FORK_PROTOCOL || 'orca'
+// ponytail: ORCA_BUILD_MAC_ARCH limits the mac slices built (e.g. "arm64"); unset = both.
+const macArch = (process.env.ORCA_BUILD_MAC_ARCH || 'x64,arm64')
+  .split(',')
+  .map((a) => a.trim())
+  .filter(Boolean)
 const featureWallResources = {
   from: 'resources/onboarding/feature-wall',
   to: 'onboarding/feature-wall'
@@ -556,11 +561,11 @@ module.exports = {
     target: [
       {
         target: 'dmg',
-        arch: ['x64', 'arm64']
+        arch: macArch
       },
       {
         target: 'zip',
-        arch: ['x64', 'arm64']
+        arch: macArch
       }
     ]
   },

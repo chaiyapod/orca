@@ -9,6 +9,8 @@ cd "$(dirname "$0")"
 export ORCA_FORK_PRODUCT_NAME="${ORCA_FORK_PRODUCT_NAME:-Orca X}"
 export ORCA_FORK_APP_ID="${ORCA_FORK_APP_ID:-com.stablyai.orca.x}"
 export ORCA_FORK_PROTOCOL="${ORCA_FORK_PROTOCOL:-orca-x}"
+# arm64 only -> faster, no cross-arch native deps. Set both|x64 to override.
+export ORCA_BUILD_MAC_ARCH="${ORCA_BUILD_MAC_ARCH:-arm64}"
 
 NODE24_BIN="$(ls -d "$HOME"/.volta/tools/image/node/24.*/bin 2>/dev/null | sort -V | tail -1)"
 [ -n "$NODE24_BIN" ] || { echo "node 24 not found. run: volta install node@24"; exit 1; }
@@ -22,5 +24,5 @@ export PATH="$SHIM:$PATH"
 echo "building '$ORCA_FORK_PRODUCT_NAME' ($ORCA_FORK_APP_ID)"
 echo "node: $(node --version)  pnpm: $(pnpm --version)"
 pnpm build:mac
-echo "done -> dist/orca-macos-arm64.dmg  dist/orca-macos-x64.dmg"
+echo "done -> dist/orca-macos-arm64.dmg"
 echo "installs as '$ORCA_FORK_PRODUCT_NAME.app'; data in ~/Library/Application Support/$ORCA_FORK_PRODUCT_NAME"
