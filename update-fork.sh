@@ -1,42 +1,41 @@
 #!/usr/bin/env bash
-# Rebases this branch onto the latest upstream/main and builds THAT (arm64
+# Rebases this branch onto the latest stable release tag and builds THAT (arm64
 # only, dir target — no dmg packing, no codesign wait) in a throwaway,
 # detached git worktree — so the current checkout/branch is never touched —
-# installs over the running fork, and relaunches it.
+# installs over the running fork, and relaunches it. Mirrors build-mac-local.sh.
 #
-# Why rebase this branch instead of building raw upstream/main: fork-only
-# files (this script, build-mac-fork.sh, the Settings "Update Fork" button,
-# electron-builder.config.cjs's ORCA_FORK_* support) exist only on this
-# branch. Building pure upstream/main would silently drop all of them —
-# including this script's own ability to run again next time.
+# Why rebase this branch instead of building the raw tag: fork-only files (this
+# script, build-mac-local.sh, the Settings "Update Fork" button,
+# electron-builder.config.cjs's ORCA_FORK_* support) exist only on this branch.
+# Building the pure tag would silently drop all of them — including this
+# script's own ability to run again next time.
 set -euo pipefail
 cd "$(dirname "$0")"
 SOURCE_REF="$(git rev-parse HEAD)"
 
-# Why: read defaults from build-mac-fork.sh itself instead of duplicating
+# Why: read defaults from build-mac-local.sh itself instead of duplicating
 # them here, so this script's install target always matches whatever name
 # that script currently builds — no separate hardcoded value to drift out
 # of sync with it.
 default_from_build_script() {
-  grep "export $1=" build-mac-fork.sh | sed -E 's/.*:-([^}]*)\}.*/\1/'
+  grep "export $1=" build-mac-local.sh | sed -E 's/.*="([^"]*)".*/\1/'
 }
 export ORCA_FORK_PRODUCT_NAME="${ORCA_FORK_PRODUCT_NAME:-$(default_from_build_script ORCA_FORK_PRODUCT_NAME)}"
 export ORCA_FORK_APP_ID="${ORCA_FORK_APP_ID:-$(default_from_build_script ORCA_FORK_APP_ID)}"
 export ORCA_FORK_PROTOCOL="${ORCA_FORK_PROTOCOL:-$(default_from_build_script ORCA_FORK_PROTOCOL)}"
 
-echo "[update-fork] fetching upstream/main and tags..."
-git fetch upstream main
+echo "[update-fork] fetching release tags..."
 git fetch upstream --tags --force  # upstream re-tags releases; --force avoids a clobber reject
 
-# Why: main's own package.json version never gets bumped — releases are cut
-# on a separate lineage that never merges back — so stamping main's real
-# number here would always read as stale. Use the latest stable vX.Y.Z
-# release tag instead so Orca's own "Check for update" reports this fork as
-# current instead of flagging a phantom update it can never install anyway
-# (adhoc-signed fork can't pass Squirrel.Mac's signature check).
-LATEST_VERSION="$(git tag -l 'v1.4.*' | grep -E '^v1\.4\.[0-9]+$' | sort -t. -k3 -n | tail -1 | sed 's/^v//')"
-[ -n "$LATEST_VERSION" ] || { echo "[update-fork] could not resolve latest release tag"; exit 1; }
-echo "[update-fork] stamping version $LATEST_VERSION"
+# Build the latest STABLE release, not main. main is bleeding-edge dev (100+
+# commits past the last release cut); the newest vX.Y.Z tag is the prod snapshot,
+# and its package.json version already matches the tag — so Orca's "Check for
+# update" sees this fork as current instead of flagging a phantom update it can
+# never install anyway (adhoc-signed fork can't pass Squirrel.Mac's check).
+LATEST_TAG="$(git tag -l 'v1.4.*' | grep -E '^v1\.4\.[0-9]+$' | sort -t. -k3 -n | tail -1)"
+[ -n "$LATEST_TAG" ] || { echo "[update-fork] could not resolve latest release tag"; exit 1; }
+LATEST_VERSION="${LATEST_TAG#v}"
+echo "[update-fork] building stable $LATEST_TAG"
 
 WORKTREE_DIR="$(mktemp -d)"
 cleanup() {
@@ -46,12 +45,12 @@ cleanup() {
 trap cleanup EXIT
 git worktree add --detach "$WORKTREE_DIR" "$SOURCE_REF" >/dev/null
 
-echo "[update-fork] rebasing this branch's tip onto upstream/main..."
+echo "[update-fork] rebasing this branch's tip onto $LATEST_TAG..."
 (
   cd "$WORKTREE_DIR"
-  if ! git rebase upstream/main; then
+  if ! git rebase "$LATEST_TAG"; then
     git rebase --abort
-    echo "[update-fork] rebase onto upstream/main conflicted — resolve manually on the real branch first"
+    echo "[update-fork] rebase onto $LATEST_TAG conflicted — resolve manually on the real branch first"
     exit 1
   fi
 )
