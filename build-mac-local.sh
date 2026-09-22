@@ -52,3 +52,8 @@ echo "node: $(node --version)  pnpm: $(pnpm --version)"
 pnpm build:mac
 echo "done -> dist/orca-macos-arm64.dmg"
 echo "installs as '$ORCA_FORK_PRODUCT_NAME.app'; data in ~/Library/Application Support/$ORCA_FORK_PRODUCT_NAME"
+
+# Publish the rebased fork branch. --force-with-lease: rebase rewrote history, so
+# a plain push is rejected; lease still refuses to clobber commits we haven't seen.
+echo "force-pushing rebased branch to origin..."
+git push --force-with-lease origin HEAD
