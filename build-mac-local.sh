@@ -47,9 +47,19 @@ export PATH="$NODE24_BIN:$PATH"
 corepack enable --install-directory "$SHIM" pnpm
 export PATH="$SHIM:$PATH"
 
-echo "building '$ORCA_FORK_PRODUCT_NAME' ($ORCA_FORK_APP_ID)"
+echo "building '$ORCA_FORK_PRODUCT_NAME' ($ORCA_FORK_APP_ID) version $LATEST_VERSION"
 echo "node: $(node --version)  pnpm: $(pnpm --version)"
-pnpm build:mac
+# Same steps as `pnpm build:mac` but call electron-builder directly instead of
+# build-mac-local.mjs: the mjs stamps a "-local.<ts>.<sha>" prerelease suffix,
+# which semver ranks BELOW the plain tag so Orca's update check flags a phantom
+# update. With ORCA_LOCAL_BUILD_VERSION unset, the config falls back to
+# package.json's version (the tag we stamped) verbatim -> equal to prod.
+pnpm run build:desktop
+pnpm run build:computer-macos
+pnpm run build:keyboard-layout-macos
+pnpm run build:notification-status-macos
+pnpm run ensure:electron-runtime
+pnpm exec electron-builder --config config/electron-builder.config.cjs --mac
 echo "done -> dist/orca-macos-arm64.dmg"
 echo "installs as '$ORCA_FORK_PRODUCT_NAME.app'; data in ~/Library/Application Support/$ORCA_FORK_PRODUCT_NAME"
 
