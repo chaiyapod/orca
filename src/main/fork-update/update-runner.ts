@@ -36,7 +36,11 @@ export function checkForkUpdateVersion(repoPath: string): ForkUpdateCheckResult 
     return { ok: false, error: `update-fork.sh not found at ${repoPath}` }
   }
   try {
-    execFileSync('git', ['fetch', 'upstream', '--tags'], { cwd: repoPath, stdio: 'ignore' })
+    // --force: upstream re-tags releases, so a moved tag would otherwise reject the whole fetch.
+    execFileSync('git', ['fetch', 'upstream', '--tags', '--force'], {
+      cwd: repoPath,
+      stdio: 'ignore'
+    })
     const tags = execFileSync('git', ['tag', '-l', 'v1.4.*'], { cwd: repoPath, encoding: 'utf-8' })
     const latestTag = tags
       .split('\n')

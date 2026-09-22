@@ -26,7 +26,7 @@ export ORCA_FORK_PROTOCOL="${ORCA_FORK_PROTOCOL:-$(default_from_build_script ORC
 
 echo "[update-fork] fetching upstream/main and tags..."
 git fetch upstream main
-git fetch upstream --tags
+git fetch upstream --tags --force  # upstream re-tags releases; --force avoids a clobber reject
 
 # Why: main's own package.json version never gets bumped — releases are cut
 # on a separate lineage that never merges back — so stamping main's real
