@@ -6,9 +6,9 @@ import { checkForkUpdateVersion, runForkUpdate } from '../fork-update/update-run
 export function registerForkUpdateHandlers(): void {
   ipcMain.handle('forkUpdate:getSettings', async () => ({
     ...readForkUpdateSettings(),
-    // Why: electron-vite dev launches with cwd at the repo root, so this is
-    // usually right on first run; the user can override and save it either way.
-    defaultRepoPath: app.isPackaged ? null : process.cwd()
+    // Why: electron-vite dev launches with cwd at the repo root; packaged has no
+    // useful cwd, so fall back to this fork's checkout. User can override + save.
+    defaultRepoPath: app.isPackaged ? '/Users/ohtraeo/Desktop/repo/personal/orca' : process.cwd()
   }))
 
   ipcMain.handle('forkUpdate:setSettings', async (_event, args: { repoPath: string | null }) => {
