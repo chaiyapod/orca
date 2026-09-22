@@ -13,11 +13,36 @@ export ORCA_FORK_PROTOCOL="orca-x"
 # arm64 only -> faster, no cross-arch native deps.
 export ORCA_BUILD_MAC_ARCH="arm64"
 
+# Build the latest STABLE release, not main. main is bleeding-edge dev (100+
+# commits past the last release cut); the newest vX.Y.Z tag is the prod snapshot.
+# Rebase this branch's fork-only commits onto that tag so every build = latest
+# prod code, and its package.json version already matches the tag.
+echo "syncing onto latest stable release tag..."
+git fetch upstream --tags --force  # upstream re-tags releases; --force avoids a clobber reject
+LATEST_TAG="$(git tag -l 'v1.4.*' | grep -E '^v1\.4\.[0-9]+$' | sort -t. -k3 -n | tail -1)"
+[ -n "$LATEST_TAG" ] || { echo "could not resolve latest release tag"; exit 1; }
+LATEST_VERSION="${LATEST_TAG#v}"
+echo "latest stable release: $LATEST_TAG"
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "working tree dirty — commit or stash before build (rebase needs a clean tree)"; exit 1
+fi
+if ! git rebase "$LATEST_TAG"; then
+  git rebase --abort
+  echo "rebase onto $LATEST_TAG conflicted — resolve manually first, then rebuild"; exit 1
+fi
+
+# Stamp version = the release tag. The tag's package.json already carries it, but
+# rebasing our fork commits on top can leave the base commit's number; force it.
+# Restored after build so the working tree stays clean for the next run's rebase.
+echo "stamping version $LATEST_VERSION"
+SHIM=""
+trap 'git checkout -- package.json 2>/dev/null || true; [ -n "$SHIM" ] && rm -rf "$SHIM"' EXIT
+node -e "const f='package.json',p=require('./'+f);p.version='$LATEST_VERSION';require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+
 NODE24_BIN="$(ls -d "$HOME"/.volta/tools/image/node/24.*/bin 2>/dev/null | sort -V | tail -1)"
 [ -n "$NODE24_BIN" ] || { echo "node 24 not found. run: volta install node@24"; exit 1; }
 
 SHIM="$(mktemp -d)"
-trap 'rm -rf "$SHIM"' EXIT
 export PATH="$NODE24_BIN:$PATH"
 corepack enable --install-directory "$SHIM" pnpm
 export PATH="$SHIM:$PATH"

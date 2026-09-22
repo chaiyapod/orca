@@ -43,15 +43,18 @@ export function ForkUpdateSettingsSection(): React.JSX.Element {
         )
         return
       }
-      toast.info(
+      // duration: Infinity -> stays until the rebuilt app restarts over this one.
+      const updatingToast = toast.loading(
         translate(
           'auto.components.settings.ForkUpdateSettingsSection.updating',
           'Updating to {{value0}}… the app will restart when it’s done.',
           { value0: result.latest }
-        )
+        ),
+        { duration: Infinity }
       )
       const runResult = await window.api.forkUpdate.run()
       if (!runResult.ok) {
+        toast.dismiss(updatingToast)
         toast.error(runResult.error)
       }
     } finally {
